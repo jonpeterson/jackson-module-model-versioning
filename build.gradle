@@ -142,12 +142,12 @@ uploadArchives {
                 name 'Jackson Model Versioning Module'
                 packaging 'jar'
                 description 'Jackson 2.x module for handling versioning of models.'
-                url 'https://github.com/jonpeterson/jackson-module-module-versioning'
+                url 'https://github.com/jonpeterson/jackson-module-model-versioning'
 
                 scm {
-                    connection 'scm:git:git://github.com/jonpeterson/jackson-module-module-versioning.git'
-                    developerConnection 'scm:git:git@github.com:jonpeterson/jackson-module-module-versioning.git'
-                    url 'https://github.com/jonpeterson/jackson-module-module-versioning'
+                    connection 'scm:git:git://github.com/jonpeterson/jackson-module-model-versioning.git'
+                    developerConnection 'scm:git:git@github.com:jonpeterson/jackson-module-model-versioning.git'
+                    url 'https://github.com/jonpeterson/jackson-module-model-versioning'
                 }
 
                 licenses {
