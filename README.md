@@ -14,7 +14,7 @@ Let's say we create an API that accepts the following car data JSON:
 Later, we decide that `model` should be split into two fields (`make` and `model`).
 ```json
 {
-  "make": "honda"
+  "make": "honda",
   "model": "civic",
   "year": 2016,
   "new": "true"
@@ -24,7 +24,7 @@ Later, we decide that `model` should be split into two fields (`make` and `model
 Then we decide that `new` should be actually be retyped and renamed (boolean `used`).
 ```json
 {
-  "make": "honda"
+  "make": "honda",
   "model": "civic",
   "year": 2016,
   "used": false
