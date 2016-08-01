@@ -1,59 +1,62 @@
 package com.github.jonpeterson.jackson.module.versioning;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.TreeNode;
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.ResolvableDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 
 import java.io.IOException;
-import java.lang.reflect.ParameterizedType;
 
-public class VersionedModelDeserializer extends StdDeserializer<VersionedModel> implements ResolvableDeserializer {
-    private final JsonDeserializer<VersionedModel> delegateDeserializer;
-    private final VersionedModelDataTransformer transformer;
+class VersionedModelDeserializer<T> extends StdDeserializer<T> implements ResolvableDeserializer {
+    private final StdDeserializer<T> delegate;
+    private final JsonVersionedModel jsonVersionedModel;
+    private final VersionedModelConverter converter;
 
-    protected VersionedModelDeserializer(JsonDeserializer<VersionedModel> delegateDeserializer, VersionedModelDataTransformer transformer) {
-        super(VersionedModel.class);
+    VersionedModelDeserializer(StdDeserializer<T> delegate, JsonVersionedModel jsonVersionedModel) {
+        super(delegate.getValueType());
 
-        this.delegateDeserializer = delegateDeserializer;
-        this.transformer = transformer;
+        this.delegate = delegate;
+        this.jsonVersionedModel = jsonVersionedModel;
+
+        try {
+            this.converter = jsonVersionedModel.converterClass().newInstance();
+        } catch(Exception e) {
+            throw new RuntimeException("unable to create instance of converter '" + jsonVersionedModel.converterClass().getName() + "'", e);
+        }
     }
 
     @Override
     public void resolve(DeserializationContext context) throws JsonMappingException {
-        ((ResolvableDeserializer)delegateDeserializer).resolve(context);
+        if(delegate instanceof ResolvableDeserializer)
+            ((ResolvableDeserializer)delegate).resolve(context);
     }
 
     @Override
-    public VersionedModel deserialize(JsonParser parser, DeserializationContext context) throws IOException, JsonProcessingException {
-        TreeNode treeNode = parser.readValueAsTree();
+    public T deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+        JsonNode jsonNode = parser.readValueAsTree();
 
-        if(!(treeNode instanceof ObjectNode))
+        if(!(jsonNode instanceof ObjectNode))
             throw context.mappingException("value must be a JSON object");
 
-        ObjectNode objectNode = (ObjectNode)treeNode;
+        ObjectNode modelData = (ObjectNode)jsonNode;
 
-        JsonNode modelVersionNode = objectNode.remove(VersionedModel.MODEL_VERSION_PROPERTY);
+        JsonNode modelVersionNode = modelData.remove(jsonVersionedModel.propertyName());
         if(modelVersionNode == null)
-            throw context.mappingException("'" + VersionedModel.MODEL_VERSION_PROPERTY + "' property was not present");
-
-        // DEBUG HERE
-        //Class<?> abc = delegateDeserializer.handledType();
-        //((ParameterizedType)abc.getGenericInterfaces()[0]).getActualTypeArguments()[0]
+            throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was not present");
 
         String modelVersion = modelVersionNode.asText();
         if(modelVersion == null)
-            throw context.mappingException("'" + VersionedModel.MODEL_VERSION_PROPERTY + "' property was null");
+            throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was null");
 
-        if(transformer != null && !modelVersion.equals(transformer.targetVersion))
-            transformer.transform(modelVersion, objectNode);
+        if(jsonVersionedModel.alwaysConvert() || !modelVersion.equals(jsonVersionedModel.currentVersion()))
+            converter.convert(modelVersion, modelData);
 
-        JsonParser objectNodeParser = new TreeTraversingParser(objectNode);
-        objectNodeParser.nextToken();
-        return delegateDeserializer.deserialize(objectNodeParser, context);
+        JsonParser postInterceptionParser = new TreeTraversingParser(jsonNode, parser.getCodec());
+        postInterceptionParser.nextToken();
+        return delegate.deserialize(postInterceptionParser, context);
     }
 }

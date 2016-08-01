@@ -2,16 +2,13 @@ buildscript {
     ext {
         // external dependency versions
         groovyVersion = '2.4.5'
-        gradleVersion = '2.9'
-        jacksonVersion = '2.6.7'
-        slf4jVersion = '1.7.12'
+        gradleVersion = '2.14.1'
+        jacksonVersion = '[2.2,)'
         spockVersion = '1.0-groovy-2.4'
 
         // external dependencies
         groovy = "org.codehaus.groovy:groovy-all:${groovyVersion}"
         jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
-        slf4jApi = "org.slf4j:slf4j-api:${slf4jVersion}"
-        slf4jSimple = "org.slf4j:slf4j-simple:${slf4jVersion}"
         spockCore = "org.spockframework:spock-core:${spockVersion}"
     }
 
@@ -22,12 +19,11 @@ buildscript {
 
 
 task wrapper(type: Wrapper) {
-    gradleVersion = gradleVersion
+    gradleVersion = this.gradleVersion
 }
 
 
 group = 'com.github.jonpeterson'
-version = '1.0.0-SNAPSHOT'
 
 apply plugin: 'java'
 apply plugin: 'groovy'
@@ -41,9 +37,7 @@ repositories {
 
 dependencies {
     compile jacksonDatabind
-    compile slf4jApi
 
     testCompile groovy
-    testCompile slf4jSimple
     testCompile spockCore
 }
