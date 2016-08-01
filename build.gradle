@@ -1,9 +1,13 @@
 buildscript {
     ext {
+        testJacksonVersions = ['2.2.0', '2.3.0', '2.4.0', '2.5.0', '2.6.0', '2.7.0', '2.8.0']
+
         // external dependency versions
         groovyVersion = '2.4.5'
         gradleVersion = '2.14.1'
-        jacksonVersion = '[2.2,)'
+        jacksonVersion = "[${testJacksonVersions.first()},)"
+        licensePluginVersion = '0.13.1'
+        releasePluginVersion = '2.4.0'
         spockVersion = '1.0-groovy-2.4'
 
         // external dependencies
@@ -14,6 +18,15 @@ buildscript {
 
     repositories {
         mavenCentral()
+        jcenter()
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
+    }
+
+    dependencies {
+        classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:${licensePluginVersion}"
+        classpath "net.researchgate:gradle-release:${releasePluginVersion}"
     }
 }
 
@@ -27,6 +40,10 @@ group = 'com.github.jonpeterson'
 
 apply plugin: 'java'
 apply plugin: 'groovy'
+apply plugin: 'com.github.hierynomus.license'
+apply plugin: 'net.researchgate.release'
+apply plugin: 'maven'
+apply plugin: 'signing'
 
 sourceCompatibility = 1.6
 targetCompatibility = 1.6
@@ -40,4 +57,115 @@ dependencies {
 
     testCompile groovy
     testCompile spockCore
+}
+
+license {
+    include '**/*.java'
+    include '**/*.groovy'
+    mapping {
+        java = 'SLASHSTAR_STYLE'
+        groovy = 'SLASHSTAR_STYLE'
+    }
+}
+
+// don't run tests with default test task
+test.excludes = ['**/*']
+
+// dynamically set up test executions for each version of Jackson
+testJacksonVersions.each { version ->
+    def safeVersion = version.replaceAll('\\.', '_')
+
+    configurations {
+        it."testJackson${safeVersion}Compile".extendsFrom testCompile
+        it."testJackson${safeVersion}Runtime".extendsFrom testRuntime
+    }
+
+    sourceSets{
+        it."testJackson$safeVersion" {
+            compileClasspath += sourceSets.main.output + sourceSets.test.output
+            runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+        }
+    }
+
+    dependencies {
+        it."testJackson${safeVersion}Compile" jacksonDatabind.replace(jacksonVersion, version)
+    }
+
+    task "testJackson$safeVersion"(type: Test) {
+        testClassesDir = sourceSets.test.output.classesDir
+        classpath = sourceSets."testJackson$safeVersion".runtimeClasspath
+    }
+
+    test.dependsOn "testJackson$safeVersion"
+}
+
+
+task javadocJar(type: Jar) {
+    dependsOn javadoc
+    classifier = 'javadoc'
+    from "$buildDir/javadoc"
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+build {
+    dependsOn javadocJar
+    dependsOn sourcesJar
+}
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
+signing {
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { deployment -> signing.signPom(deployment) }
+
+            repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots/') {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            pom.project {
+                name 'Jackson Model Versioning Module'
+                packaging 'jar'
+                description 'Jackson 2.x module for handling versioning of models.'
+                url 'https://github.com/jonpeterson/jackson-module-module-versioning'
+
+                scm {
+                    connection 'scm:git:git://github.com/jonpeterson/jackson-module-module-versioning.git'
+                    developerConnection 'scm:git:git@github.com:jonpeterson/jackson-module-module-versioning.git'
+                    url 'https://github.com/jonpeterson/jackson-module-module-versioning'
+                }
+
+                licenses {
+                    license {
+                        name 'MIT License'
+                        url 'http://www.opensource.org/licenses/mit-license.php'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'jonpeterson'
+                        name 'Jonathan Peterson'
+                        email 'jonathan.p.peterson@gmail.com'
+                        url 'https://github.com/jonpeterson'
+                    }
+                }
+            }
+        }
+    }
 }
