@@ -46,9 +46,9 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
         this.jsonVersionedModel = jsonVersionedModel;
 
         try {
-            this.converter = jsonVersionedModel.converterClass().newInstance();
+            this.converter = jsonVersionedModel.toCurrentConverterClass().newInstance();
         } catch(Exception e) {
-            throw new RuntimeException("unable to create instance of converter '" + jsonVersionedModel.converterClass().getName() + "'", e);
+            throw new RuntimeException("unable to create instance of converter '" + jsonVersionedModel.toCurrentConverterClass().getName() + "'", e);
         }
     }
 
@@ -76,9 +76,9 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
             throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was null");
 
         if(jsonVersionedModel.alwaysConvert() || !modelVersion.equals(jsonVersionedModel.currentVersion()))
-            converter.convert(modelVersion, modelData);
+            modelData = converter.convert(modelData, modelVersion, jsonVersionedModel.currentVersion(), context.getNodeFactory());
 
-        JsonParser postInterceptionParser = new TreeTraversingParser(jsonNode, parser.getCodec());
+        JsonParser postInterceptionParser = new TreeTraversingParser(modelData, parser.getCodec());
         postInterceptionParser.nextToken();
         return delegate.deserialize(postInterceptionParser, context);
     }

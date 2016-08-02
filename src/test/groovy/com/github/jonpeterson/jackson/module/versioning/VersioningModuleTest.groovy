@@ -23,9 +23,9 @@
  */
 package com.github.jonpeterson.jackson.module.versioning
 
-import com.fasterxml.jackson.databind.MapperFeature
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import spock.lang.Specification
 
@@ -37,49 +37,79 @@ class VersioningModuleTest extends Specification {
         List<CustomVersionedCar> customVersionedCars
     }
 
-    @JsonVersionedModel(currentVersion = '3', converterClass = CarVersionedModelConverter)
+    @JsonVersionedModel(currentVersion = '3',
+                        toCurrentConverterClass = ToCurrentCarConverter)
     static class Car {
         String make
         String model
         int year
         boolean used
-        String originalModelVersion
+        String _debugPreDeserializationVersion
+
+        @JsonSerializeToVersion
+        @JsonIgnore
+        String getSerializeToVersion() {
+            return "1"
+        }
     }
 
-    @JsonVersionedModel(currentVersion = '3', converterClass = CarVersionedModelConverter, alwaysConvert = true, propertyName = '_version')
+    @JsonVersionedModel(currentVersion = '3',
+                        defaultSerializeToVersion = '2',
+                        toCurrentConverterClass = ToCurrentCarConverter,
+                        toPastConverterClass = ToPastCarConverter,
+                        alwaysConvert = true,
+                        propertyName = '_version')
     static class CustomVersionedCar extends Car {
     }
 
-    static class CarVersionedModelConverter implements VersionedModelConverter {
+    static class ToCurrentCarConverter implements VersionedModelConverter {
 
         @Override
-        def void convert(String modelVersion, ObjectNode modelData) {
+        def ObjectNode convert(ObjectNode modelData, String modelVersion, String targetModelVersion, JsonNodeFactory nodeFactory) {
             // model version is an int
-            def modelVersionNum = modelVersion as int
+            def version = modelVersion as int
 
             // version 1 had a single 'model' field that combined 'make' and 'model' with a colon delimiter; split
-            if(modelVersionNum < 2) {
+            if(version <= 1) {
                 def makeAndModel = modelData.get('model').asText().split(':')
                 modelData.put('make', makeAndModel[0])
                 modelData.put('model', makeAndModel[1])
             }
 
             // version 1-2 had a 'new' text field instead of a boolean 'used' field; convert and invert
-            if(modelVersionNum < 3)
-                modelData.put('used', !(modelData.remove('new').asText() as boolean))
+            if(version <= 2)
+                modelData.put('used', !Boolean.parseBoolean(modelData.remove('new').asText()))
 
             // setting a debug field
-            modelData.put('originalModelVersion', modelVersion)
+            modelData.put('_debugPreDeserializationVersion', modelVersion)
+        }
+    }
+
+    static class ToPastCarConverter implements VersionedModelConverter {
+
+        @Override
+        def ObjectNode convert(ObjectNode modelData, String modelVersion, String targetModelVersion, JsonNodeFactory nodeFactory) {
+            // model version is an int
+            def version = modelVersion as int
+            def targetVersion = targetModelVersion as int
+
+            // version 1 had a single 'model' field that combined 'make' and 'model' with a colon delimiter; combine
+            if(targetVersion <= 1 && version > 1)
+                modelData.put('model', "${modelData.remove('make').asText()}:${modelData.get('model').asText()}")
+
+            // version 1-2 had a 'new' text field instead of a boolean 'used' field; convert and invert
+            if(targetVersion <= 2 && version > 2)
+                modelData.put('new', !modelData.remove('used').asBoolean() as String)
+
+            // setting a debug field
+            modelData.put('_debugPreSerializationVersion', modelVersion)
         }
     }
 
 
     def 'deserialize and reserialize'() {
         given:
-        def mapper = new ObjectMapper()
-            .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
-            .enable(SerializationFeature.INDENT_OUTPUT)
-            .registerModule(new VersioningModule())
+        def mapper = new ObjectMapper().registerModule(new VersioningModule())
 
         expect:
         def deserialized = mapper.readValue(
@@ -141,67 +171,87 @@ class VersioningModuleTest extends Specification {
             CarsByType
         )
 
-        mapper.writeValueAsString(deserialized).replaceAll('\r\n', '\n') ==
-            '''{
-              |  "cars" : [ {
-              |    "make" : "honda",
-              |    "model" : "civic",
-              |    "originalModelVersion" : "1",
-              |    "used" : false,
-              |    "year" : 2016,
-              |    "modelVersion" : "3"
-              |  }, {
-              |    "make" : "toyota",
-              |    "model" : "camry",
-              |    "originalModelVersion" : "2",
-              |    "used" : false,
-              |    "year" : 2012,
-              |    "modelVersion" : "3"
-              |  }, {
-              |    "make" : "mazda",
-              |    "model" : "6",
-              |    "originalModelVersion" : null,
-              |    "used" : false,
-              |    "year" : 2017,
-              |    "modelVersion" : "3"
-              |  }, {
-              |    "make" : "ford",
-              |    "model" : "fusion",
-              |    "originalModelVersion" : "4",
-              |    "used" : true,
-              |    "year" : 2013,
-              |    "modelVersion" : "3"
-              |  } ],
-              |  "customVersionedCars" : [ {
-              |    "make" : "honda",
-              |    "model" : "civic",
-              |    "originalModelVersion" : "1",
-              |    "used" : false,
-              |    "year" : 2016,
-              |    "_version" : "3"
-              |  }, {
-              |    "make" : "toyota",
-              |    "model" : "camry",
-              |    "originalModelVersion" : "2",
-              |    "used" : false,
-              |    "year" : 2012,
-              |    "_version" : "3"
-              |  }, {
-              |    "make" : "mazda",
-              |    "model" : "6",
-              |    "originalModelVersion" : "3",
-              |    "used" : false,
-              |    "year" : 2017,
-              |    "_version" : "3"
-              |  }, {
-              |    "make" : "ford",
-              |    "model" : "fusion",
-              |    "originalModelVersion" : "4",
-              |    "used" : true,
-              |    "year" : 2013,
-              |    "_version" : "3"
-              |  } ],
-              |  "type" : "sedan"
-              |}'''.stripMargin()
+        mapper.convertValue(deserialized, Map) == [
+            type: 'sedan',
+            cars: [
+                [
+                    modelVersion: '3',
+                    make: 'honda',
+                    model: 'civic',
+                    used: false,
+                    year: 2016,
+                    _debugPreDeserializationVersion: '1'
+                ], [
+                    modelVersion: '3',
+                    make: 'toyota',
+                    model: 'camry',
+                    used: true,
+                    year: 2012,
+                    _debugPreDeserializationVersion: '2'
+                ], [
+                    modelVersion: '3',
+                    make: 'mazda',
+                    model: '6',
+                    used: false,
+                    year: 2017,
+                    _debugPreDeserializationVersion: null
+                ], [
+                    modelVersion: '3',
+                    make: 'ford',
+                    model: 'fusion',
+                    used: true,
+                    year: 2013,
+                    _debugPreDeserializationVersion: '4'
+                ]
+            ],
+            customVersionedCars: [
+                [
+                    _version: '2',
+                    make: 'honda',
+                    model: 'civic',
+                    new: 'true',
+                    year: 2016,
+                    _debugPreDeserializationVersion: '1',
+                    _debugPreSerializationVersion: '3'
+                ], [
+                    _version: '2',
+                    make: 'toyota',
+                    model: 'camry',
+                    new: 'false',
+                    year: 2012,
+                    _debugPreDeserializationVersion: '2',
+                    _debugPreSerializationVersion: '3'
+                ], [
+                    _version: '2',
+                    make: 'mazda',
+                    model: '6',
+                    new: 'true',
+                    year: 2017,
+                    _debugPreDeserializationVersion: '3',
+                    _debugPreSerializationVersion: '3'
+                ], [
+                    _version: '2',
+                    make: 'ford',
+                    model: 'fusion',
+                    new: 'false',
+                    year: 2013,
+                    _debugPreDeserializationVersion: '4',
+                    _debugPreSerializationVersion: '3'
+                ]
+            ]
+        ]
+
+        def car = new CustomVersionedCar(
+            make: 'honda',
+            model: 'civic',
+            used: false,
+            year: 2016
+        )
+        mapper.readValue(mapper.writeValueAsString(car), Map) == [
+            make: 'honda',
+            model: 'civic',
+            used: false,
+            year: 2016
+        ]
     }
 }

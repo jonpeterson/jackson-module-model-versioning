@@ -23,6 +23,7 @@
  */
 package com.github.jonpeterson.jackson.module.versioning;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -31,10 +32,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public interface VersionedModelConverter {
 
     /**
-     * Updates JSON data before deserialization to model.
+     * Returns JSON data in the target version.
      *
-     * @param modelVersion version of data
-     * @param modelData    JSON data to update
+     * @param modelData          data to be converted
+     * @param modelVersion       version of the data
+     * @param targetModelVersion version of the data to be returned
+     * @param nodeFactory        node factory
+     * @return model data converted to target version
      */
-    void convert(String modelVersion, ObjectNode modelData);
+    ObjectNode convert(ObjectNode modelData, String modelVersion, String targetModelVersion, JsonNodeFactory nodeFactory);
 }

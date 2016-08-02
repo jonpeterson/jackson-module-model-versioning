@@ -30,44 +30,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * Specifies model versioning details.
- */
-@Target({ElementType.TYPE})
+@Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @JacksonAnnotation
-public @interface JsonVersionedModel {
-    String SERIALIZE_TO_VERSION_ATTRIBUTE_NAME = "VERSIONED_MODEL_SERIALIZE_TO_VERSION";
-
-    /**
-     * @return the current version of the model.
-     */
-    String currentVersion();
-
-    /**
-     * @return the version to convert the model to during serialization; this can be overriden by TODO: insert attribute here
-     */
-    String defaultSerializeToVersion() default "";
-
-    /**
-     * @return class of the converter to use when resolving versioning to the current version.
-     */
-    Class<? extends VersionedModelConverter> toCurrentConverterClass();
-
-    /**
-     * @return class of the converter to use when resolving versioning to a past version; not specifying will cause
-     *         models to be serialized as the current version despite TODO: attribute here
-     */
-    Class<? extends VersionedModelConverter> toPastConverterClass() default VersionedModelConverter.class;
-
-    /**
-     * @return whether to always send model data to converters, even when the data is the same version as the version to
-     *         convert to.
-     */
-    boolean alwaysConvert() default false;
-
-    /**
-     * @return name of property in which the model's version is stored in JSON.
-     */
-    String propertyName() default "modelVersion";
+public @interface JsonSerializeToVersion {
 }

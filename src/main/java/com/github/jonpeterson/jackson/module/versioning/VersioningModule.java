@@ -26,9 +26,12 @@ package com.github.jonpeterson.jackson.module.versioning;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.sun.org.apache.xpath.internal.operations.String;
 
 /**
  * Jackson module to load when using {@link JsonVersionedModel}.
@@ -62,16 +65,28 @@ public class VersioningModule extends SimpleModule {
             public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDescription, JsonSerializer<?> serializer) {
                 if(serializer instanceof StdSerializer) {
                     JsonVersionedModel jsonVersionedModel = beanDescription.getClassAnnotations().get(JsonVersionedModel.class);
-                    if(jsonVersionedModel != null)
-                        return createVersioningSerializer((StdSerializer)serializer, jsonVersionedModel);
+                    if(jsonVersionedModel != null) {
+                        AnnotatedMember serializeToVersionMember = null;
+                        for(BeanPropertyDefinition definition: beanDescription.findProperties()) {
+                            AnnotatedMember accessor = definition.getAccessor();
+                            if(accessor.hasAnnotation(JsonSerializeToVersion.class)) {
+                                if(serializeToVersionMember != null)
+                                    throw new RuntimeException("@" + JsonSerializeToVersion.class.getSimpleName() + " must be present on at most one field or method");
+                                if(accessor.getRawType() != String.class)
+                                    throw new RuntimeException("@" + JsonSerializeToVersion.class.getSimpleName() + " must be on a String field or method that returns a String");
+                                serializeToVersionMember = accessor;
+                            }
+                        }
+                        return createVersioningSerializer((StdSerializer)serializer, jsonVersionedModel, serializeToVersionMember);
+                    }
                 }
 
                 return serializer;
             }
 
             // here just to make generics work without warnings
-            private <T> VersionedModelSerializer<T> createVersioningSerializer(StdSerializer<T> serializer, JsonVersionedModel jsonVersionedModel) {
-                return new VersionedModelSerializer<T>(serializer, jsonVersionedModel);
+            private <T> VersionedModelSerializer<T> createVersioningSerializer(StdSerializer<T> serializer, JsonVersionedModel jsonVersionedModel, AnnotatedMember serializeToVersionMember) {
+                return new VersionedModelSerializer<T>(serializer, jsonVersionedModel, serializeToVersionMember);
             }
         });
     }

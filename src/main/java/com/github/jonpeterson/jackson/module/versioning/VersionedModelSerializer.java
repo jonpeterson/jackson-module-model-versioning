@@ -27,6 +27,8 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ser.ResolvableSerializer;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
@@ -37,12 +39,25 @@ import java.io.IOException;
 class VersionedModelSerializer<T> extends StdSerializer<T> implements ResolvableSerializer {
     private final StdSerializer<T> delegate;
     private final JsonVersionedModel jsonVersionedModel;
+    private final VersionedModelConverter converter;
+    private final AnnotatedMember serializeToVersionMember;
 
-    VersionedModelSerializer(StdSerializer<T> delegate, JsonVersionedModel jsonVersionedModel) {
+    VersionedModelSerializer(StdSerializer<T> delegate, JsonVersionedModel jsonVersionedModel, AnnotatedMember serializeToVersionMember) {
         super(delegate.handledType());
 
         this.delegate = delegate;
         this.jsonVersionedModel = jsonVersionedModel;
+        this.serializeToVersionMember = serializeToVersionMember;
+
+        Class<? extends VersionedModelConverter> converterClass = jsonVersionedModel.toPastConverterClass();
+        if(converterClass != VersionedModelConverter.class)
+            try {
+                this.converter = converterClass.newInstance();
+            } catch(Exception e) {
+                throw new RuntimeException("unable to create instance of converter '" + converterClass.getName() + "'", e);
+            }
+        else
+            converter = null;
     }
 
     @Override
@@ -63,12 +78,21 @@ class VersionedModelSerializer<T> extends StdSerializer<T> implements Resolvable
         } finally {
             bufferGenerator.close();
         }
-        ObjectNode node = factory.createParser(buffer.toByteArray()).readValueAsTree();
+        ObjectNode modelData = factory.createParser(buffer.toByteArray()).readValueAsTree();
+
+        String targetVersion = serializeToVersionMember != null ? (String)serializeToVersionMember.getValue(value) : null;
+        if(targetVersion == null)
+            targetVersion = jsonVersionedModel.defaultSerializeToVersion();
+        if(targetVersion.isEmpty())
+            targetVersion = jsonVersionedModel.currentVersion();
+
+        if(converter != null && (jsonVersionedModel.alwaysConvert() || !targetVersion.equals(jsonVersionedModel.currentVersion())))
+            modelData = converter.convert(modelData, jsonVersionedModel.currentVersion(), targetVersion, JsonNodeFactory.instance);
 
         // add current version
-        node.put(jsonVersionedModel.propertyName(), jsonVersionedModel.currentVersion());
+        modelData.put(jsonVersionedModel.propertyName(), targetVersion);
 
         // write node
-        generator.writeTree(node);
+        generator.writeTree(modelData);
     }
 }

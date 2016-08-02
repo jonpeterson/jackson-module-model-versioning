@@ -126,6 +126,14 @@ signing {
 }
 
 uploadArchives {
+    def ossrhUsername = project.hasProperty('ossrhUsername') ? project.property('ossrhUsername') : null
+    def ossrhPassword = project.hasProperty('ossrhPassword') ? project.property('ossrhPassword') : null
+
+    doFirst {
+        if(!ossrhUsername || !ossrhPassword)
+            throw new MissingPropertyException('ossrhUsername or ossrhPassword not set')
+    }
+
     repositories {
         mavenDeployer {
             beforeDeployment { deployment -> signing.signPom(deployment) }
