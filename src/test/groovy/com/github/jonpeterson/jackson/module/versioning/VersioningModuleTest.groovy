@@ -34,7 +34,7 @@ class VersioningModuleTest extends Specification {
     static class CarsByType {
         String type
         List<Car> cars
-        List<CustomVersionedCar> customVersionedCars
+        List<DefaultSerializeToCar> customVersionedCars
     }
 
     @JsonVersionedModel(currentVersion = '3',
@@ -45,12 +45,6 @@ class VersioningModuleTest extends Specification {
         int year
         boolean used
         String _debugPreDeserializationVersion
-
-        @JsonSerializeToVersion
-        @JsonIgnore
-        String getSerializeToVersion() {
-            return "1"
-        }
     }
 
     @JsonVersionedModel(currentVersion = '3',
@@ -59,7 +53,15 @@ class VersioningModuleTest extends Specification {
                         toPastConverterClass = ToPastCarConverter,
                         alwaysConvert = true,
                         propertyName = '_version')
-    static class CustomVersionedCar extends Car {
+    static class DefaultSerializeToCar extends Car {
+    }
+
+    static class MethodSerializeToCar extends DefaultSerializeToCar {
+
+        @JsonSerializeToVersion
+        String getSerializeToVersion() {
+            return "1"
+        }
     }
 
     static class ToCurrentCarConverter implements VersionedModelConverter {
@@ -107,11 +109,10 @@ class VersioningModuleTest extends Specification {
     }
 
 
-    def 'deserialize and reserialize'() {
-        given:
-        def mapper = new ObjectMapper().registerModule(new VersioningModule())
+    def mapper = new ObjectMapper().registerModule(new VersioningModule())
 
-        expect:
+    def 'deserialize and reserialize'() {
+        when:
         def deserialized = mapper.readValue(
             '''{
               |  "type": "sedan",
@@ -171,6 +172,7 @@ class VersioningModuleTest extends Specification {
             CarsByType
         )
 
+        then:
         mapper.convertValue(deserialized, Map) == [
             type: 'sedan',
             cars: [
@@ -240,18 +242,23 @@ class VersioningModuleTest extends Specification {
                 ]
             ]
         ]
+    }
 
-        def car = new CustomVersionedCar(
+    def 'abc'() {
+        expect:
+        def car = new MethodSerializeToCar(
             make: 'honda',
             model: 'civic',
             used: false,
             year: 2016
         )
         mapper.readValue(mapper.writeValueAsString(car), Map) == [
-            make: 'honda',
-            model: 'civic',
-            used: false,
-            year: 2016
+            _version: '1',
+            model: 'honda:civic',
+            new: 'true',
+            year: 2016,
+            _debugPreDeserializationVersion: null,
+            _debugPreSerializationVersion: '3'
         ]
     }
 }

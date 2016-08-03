@@ -31,7 +31,6 @@ import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import com.sun.org.apache.xpath.internal.operations.String;
 
 /**
  * Jackson module to load when using {@link JsonVersionedModel}.
