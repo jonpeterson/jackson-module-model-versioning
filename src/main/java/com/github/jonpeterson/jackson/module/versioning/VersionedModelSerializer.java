@@ -27,7 +27,6 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -81,6 +80,8 @@ class VersionedModelSerializer<T> extends StdSerializer<T> implements Resolvable
         }
         ObjectNode modelData = factory.createParser(buffer.toByteArray()).readValueAsTree();
 
+        // set target version to @SerializeToVersion's value, @JsonVersionModel's defaultSerializeToVersion, or
+        //   @JsonVersionModel's currentVersion in that order
         String targetVersion = null;
         if(serializeToVersionProperty != null) {
             targetVersion = (String)serializeToVersionProperty.getAccessor().getValue(value);
@@ -91,10 +92,12 @@ class VersionedModelSerializer<T> extends StdSerializer<T> implements Resolvable
         if(targetVersion.isEmpty())
             targetVersion = jsonVersionedModel.currentVersion();
 
+        // convert model data if there is a converter and targetVersion is different than the currentVersion or if
+        //   alwaysConvert is true
         if(converter != null && (jsonVersionedModel.alwaysConvert() || !targetVersion.equals(jsonVersionedModel.currentVersion())))
             modelData = converter.convert(modelData, jsonVersionedModel.currentVersion(), targetVersion, JsonNodeFactory.instance);
 
-        // add current version
+        // add target version to model data
         modelData.put(jsonVersionedModel.propertyName(), targetVersion);
 
         // write node

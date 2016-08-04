@@ -32,6 +32,10 @@ import spock.lang.Unroll
 
 class VersioningModuleTest extends Specification {
 
+    /**********************\
+    |* Test model classes *|
+    \**********************/
+
     static class CarsByType {
         String type
         List<Car> cars
@@ -73,6 +77,28 @@ class VersioningModuleTest extends Specification {
         @JsonSerializeToVersion
         String s2v
     }
+
+    static class MultipleSerializeToCar extends Car {
+
+        @JsonSerializeToVersion
+        String s2v
+
+        @JsonSerializeToVersion
+        String getSerializeToVersion() {
+            return s2v
+        }
+    }
+
+    static class WrongTypeSerializeToCar extends Car {
+
+        @JsonSerializeToVersion
+        int s2v
+    }
+
+
+    /***********************************\
+    |* Test versioned model converters *|
+    \***********************************/
 
     static class ToCurrentCarConverter implements VersionedModelConverter {
 
@@ -118,6 +144,10 @@ class VersioningModuleTest extends Specification {
         }
     }
 
+
+    /**************\
+    |* Test cases *|
+    \**************/
 
     def mapper = new ObjectMapper().registerModule(new VersioningModule())
 
@@ -280,5 +310,20 @@ class VersioningModuleTest extends Specification {
         FieldSerializeToCar  | '3'                | [_version: '3', make: 'honda', model: 'civic', used: false, year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
         MethodSerializeToCar | '4'                | [_version: '4', make: 'honda', model: 'civic', used: false, year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
         FieldSerializeToCar  | '4'                | [_version: '4', make: 'honda', model: 'civic', used: false, year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
+    }
+
+    def 'errors'() {
+        when: 'multiple @SerializeTo'
+        mapper.writeValueAsString(new MultipleSerializeToCar())
+
+        then:
+        thrown RuntimeException
+
+
+        when: 'wrong return type of @SerializeTo'
+        mapper.writeValueAsString(new WrongTypeSerializeToCar())
+
+        then:
+        thrown RuntimeException
     }
 }

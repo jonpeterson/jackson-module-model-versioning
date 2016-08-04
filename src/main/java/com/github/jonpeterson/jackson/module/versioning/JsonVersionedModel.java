@@ -37,7 +37,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @JacksonAnnotation
 public @interface JsonVersionedModel {
-    String SERIALIZE_TO_VERSION_ATTRIBUTE_NAME = "VERSIONED_MODEL_SERIALIZE_TO_VERSION";
 
     /**
      * @return the current version of the model.
@@ -45,7 +44,8 @@ public @interface JsonVersionedModel {
     String currentVersion();
 
     /**
-     * @return the version to convert the model to during serialization; this can be overriden by TODO: insert attribute here
+     * @return the version to convert the model to during serialization; this can be overridden by using
+     *         {@link JsonSerializeToVersion}
      */
     String defaultSerializeToVersion() default "";
 
@@ -56,7 +56,7 @@ public @interface JsonVersionedModel {
 
     /**
      * @return class of the converter to use when resolving versioning to a past version; not specifying will cause
-     *         models to be serialized as the current version despite TODO: attribute here
+     *         models to be serialized as the current version
      */
     Class<? extends VersionedModelConverter> toPastConverterClass() default VersionedModelConverter.class;
 
