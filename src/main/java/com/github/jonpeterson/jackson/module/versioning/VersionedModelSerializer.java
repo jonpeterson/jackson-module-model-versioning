@@ -28,6 +28,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ser.ResolvableSerializer;
@@ -40,14 +41,14 @@ class VersionedModelSerializer<T> extends StdSerializer<T> implements Resolvable
     private final StdSerializer<T> delegate;
     private final JsonVersionedModel jsonVersionedModel;
     private final VersionedModelConverter converter;
-    private final AnnotatedMember serializeToVersionMember;
+    private final BeanPropertyDefinition serializeToVersionProperty;
 
-    VersionedModelSerializer(StdSerializer<T> delegate, JsonVersionedModel jsonVersionedModel, AnnotatedMember serializeToVersionMember) {
+    VersionedModelSerializer(StdSerializer<T> delegate, JsonVersionedModel jsonVersionedModel, BeanPropertyDefinition serializeToVersionProperty) {
         super(delegate.handledType());
 
         this.delegate = delegate;
         this.jsonVersionedModel = jsonVersionedModel;
-        this.serializeToVersionMember = serializeToVersionMember;
+        this.serializeToVersionProperty = serializeToVersionProperty;
 
         Class<? extends VersionedModelConverter> converterClass = jsonVersionedModel.toPastConverterClass();
         if(converterClass != VersionedModelConverter.class)
@@ -80,7 +81,11 @@ class VersionedModelSerializer<T> extends StdSerializer<T> implements Resolvable
         }
         ObjectNode modelData = factory.createParser(buffer.toByteArray()).readValueAsTree();
 
-        String targetVersion = serializeToVersionMember != null ? (String)serializeToVersionMember.getValue(value) : null;
+        String targetVersion = null;
+        if(serializeToVersionProperty != null) {
+            targetVersion = (String)serializeToVersionProperty.getAccessor().getValue(value);
+            modelData.remove(serializeToVersionProperty.getName());
+        }
         if(targetVersion == null)
             targetVersion = jsonVersionedModel.defaultSerializeToVersion();
         if(targetVersion.isEmpty())

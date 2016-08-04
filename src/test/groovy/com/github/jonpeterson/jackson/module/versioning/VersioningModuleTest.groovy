@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import spock.lang.Specification
+import spock.lang.Unroll
 
 class VersioningModuleTest extends Specification {
 
@@ -58,10 +59,19 @@ class VersioningModuleTest extends Specification {
 
     static class MethodSerializeToCar extends DefaultSerializeToCar {
 
+        @JsonIgnore
+        String s2v
+
         @JsonSerializeToVersion
         String getSerializeToVersion() {
-            return "1"
+            return s2v
         }
+    }
+
+    static class FieldSerializeToCar extends DefaultSerializeToCar {
+
+        @JsonSerializeToVersion
+        String s2v
     }
 
     static class ToCurrentCarConverter implements VersionedModelConverter {
@@ -244,21 +254,31 @@ class VersioningModuleTest extends Specification {
         ]
     }
 
-    def 'abc'() {
-        expect:
-        def car = new MethodSerializeToCar(
+    @Unroll
+    def 'serialize to version: #clazz.simpleName #serializeToVersion'() {
+        given:
+        def data = [
             make: 'honda',
             model: 'civic',
             used: false,
-            year: 2016
-        )
-        mapper.readValue(mapper.writeValueAsString(car), Map) == [
-            _version: '1',
-            model: 'honda:civic',
-            new: 'true',
             year: 2016,
-            _debugPreDeserializationVersion: null,
-            _debugPreSerializationVersion: '3'
+            s2v: serializeToVersion
         ]
+
+        expect:
+        mapper.readValue(mapper.writeValueAsString(clazz.newInstance(data)), Map) == expected
+
+        where:
+        clazz                | serializeToVersion | expected
+        MethodSerializeToCar | '1'                | [_version: '1', model: 'honda:civic', new: 'true', year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
+        FieldSerializeToCar  | '1'                | [_version: '1', model: 'honda:civic', new: 'true', year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
+        MethodSerializeToCar | '2'                | [_version: '2', make: 'honda', model: 'civic', new: 'true', year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
+        FieldSerializeToCar  | '2'                | [_version: '2', make: 'honda', model: 'civic', new: 'true', year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
+        MethodSerializeToCar | null               | [_version: '2', make: 'honda', model: 'civic', new: 'true', year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
+        FieldSerializeToCar  | null               | [_version: '2', make: 'honda', model: 'civic', new: 'true', year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
+        MethodSerializeToCar | '3'                | [_version: '3', make: 'honda', model: 'civic', used: false, year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
+        FieldSerializeToCar  | '3'                | [_version: '3', make: 'honda', model: 'civic', used: false, year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
+        MethodSerializeToCar | '4'                | [_version: '4', make: 'honda', model: 'civic', used: false, year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
+        FieldSerializeToCar  | '4'                | [_version: '4', make: 'honda', model: 'civic', used: false, year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
     }
 }

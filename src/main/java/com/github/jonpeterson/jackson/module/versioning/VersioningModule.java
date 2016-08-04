@@ -65,18 +65,18 @@ public class VersioningModule extends SimpleModule {
                 if(serializer instanceof StdSerializer) {
                     JsonVersionedModel jsonVersionedModel = beanDescription.getClassAnnotations().get(JsonVersionedModel.class);
                     if(jsonVersionedModel != null) {
-                        AnnotatedMember serializeToVersionMember = null;
+                        BeanPropertyDefinition serializeToVersionProperty = null;
                         for(BeanPropertyDefinition definition: beanDescription.findProperties()) {
                             AnnotatedMember accessor = definition.getAccessor();
                             if(accessor.hasAnnotation(JsonSerializeToVersion.class)) {
-                                if(serializeToVersionMember != null)
+                                if(serializeToVersionProperty != null)
                                     throw new RuntimeException("@" + JsonSerializeToVersion.class.getSimpleName() + " must be present on at most one field or method");
                                 if(accessor.getRawType() != String.class)
                                     throw new RuntimeException("@" + JsonSerializeToVersion.class.getSimpleName() + " must be on a String field or method that returns a String");
-                                serializeToVersionMember = accessor;
+                                serializeToVersionProperty = definition;
                             }
                         }
-                        return createVersioningSerializer((StdSerializer)serializer, jsonVersionedModel, serializeToVersionMember);
+                        return createVersioningSerializer((StdSerializer)serializer, jsonVersionedModel, serializeToVersionProperty);
                     }
                 }
 
@@ -84,8 +84,8 @@ public class VersioningModule extends SimpleModule {
             }
 
             // here just to make generics work without warnings
-            private <T> VersionedModelSerializer<T> createVersioningSerializer(StdSerializer<T> serializer, JsonVersionedModel jsonVersionedModel, AnnotatedMember serializeToVersionMember) {
-                return new VersionedModelSerializer<T>(serializer, jsonVersionedModel, serializeToVersionMember);
+            private <T> VersionedModelSerializer<T> createVersioningSerializer(StdSerializer<T> serializer, JsonVersionedModel jsonVersionedModel, BeanPropertyDefinition serializeToVersionProperty) {
+                return new VersionedModelSerializer<T>(serializer, jsonVersionedModel, serializeToVersionProperty);
             }
         });
     }
