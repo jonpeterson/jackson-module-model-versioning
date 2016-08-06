@@ -47,6 +47,9 @@ GET  /api/car/v2/{id} ->  CarV2
 
 But what if there was a way that only required a single model class that could be annotated to control conversion between versions of the raw data before deserialization and after serialization? That is what this Jackson module provides.
 
+## Diagram
+![Diagram](images/diagram.png)
+
 ## Examples
 *Note: All examples are using Groovy for brevity, but it is not required.*
 
@@ -101,7 +104,7 @@ println mapper.writeValueAsString(hondaCivic)
 // prints '{"make": "honda", "model": "civic", "year": 2016, "used": false, "modelVersion": "3"}'
 ```
 
-### Example: Serializing To A Specific Version
+### Serializing To A Specific Version
 **Modify the model in the prvious example to also specify what converter class to use when serializing from the current version to a potentially old version of the model. Also add a field (can be a method) that returns the version that the model to be serialized to.**
 ```groovy
 @JsonVersionedModel(currentVersion = '3',
