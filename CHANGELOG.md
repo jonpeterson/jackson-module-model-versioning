@@ -1,4 +1,4 @@
-## 1.1.1 (????-??-??)
+## 1.1.1 (2016-08-10)
 
 - jonpeterson: Fixed bug that caused error while serializing models using @JsonSubTypes.
 - jonpeterson: Fixed detection of multiple @JsonSerializeToVersion properties; getters and setters now allowed.

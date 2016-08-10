@@ -171,7 +171,7 @@ Compiled for Java 6 and tested with Jackson 2.2 - 2.8.
 ## Getting Started with Gradle
 ```groovy
 dependencies {
-    compile 'com.github.jonpeterson:jackson-module-model-versioning:1.1.0'
+    compile 'com.github.jonpeterson:jackson-module-model-versioning:1.1.1'
 }
 ```
 
@@ -180,8 +180,10 @@ dependencies {
 <dependency>
     <groupId>com.github.jonpeterson</groupId>
     <artifactId>jackson-module-model-versioning</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
 </dependency>
 ```
 
-## [JavaDoc](https://jonpeterson.github.io/docs/jackson-module-model-versioning/1.1.0/index.html)
+## [JavaDoc](https://jonpeterson.github.io/docs/jackson-module-model-versioning/1.1.1/index.html)
+
+## [Changelog](CHANGELOG.md)
