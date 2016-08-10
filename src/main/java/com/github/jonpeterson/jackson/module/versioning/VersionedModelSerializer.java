@@ -28,6 +28,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ser.ResolvableSerializer;
@@ -68,16 +69,29 @@ class VersionedModelSerializer<T> extends StdSerializer<T> implements Resolvable
 
     @Override
     public void serialize(T value, JsonGenerator generator, SerializerProvider provider) throws IOException {
+        doSerialize(value, generator, provider, null);
+    }
+
+    @Override
+    public void serializeWithType(T value, JsonGenerator generator, SerializerProvider provider, TypeSerializer typeSerializer) throws IOException {
+        doSerialize(value, generator, provider, typeSerializer);
+    }
+
+    private void doSerialize(T value, JsonGenerator generator, SerializerProvider provider, TypeSerializer typeSerializer) throws IOException {
         // serialize the value into a byte array buffer then parse it back out into a JsonNode tree
         // TODO: find a better way to convert the value into a tree
         JsonFactory factory = generator.getCodec().getFactory();
         ByteArrayOutputStream buffer = new ByteArrayOutputStream(4096);
         JsonGenerator bufferGenerator = factory.createGenerator(buffer);
         try {
-            delegate.serialize(value, bufferGenerator, provider);
+            if(typeSerializer != null)
+                delegate.serializeWithType(value, bufferGenerator, provider, typeSerializer);
+            else
+                delegate.serialize(value, bufferGenerator, provider);
         } finally {
             bufferGenerator.close();
         }
+
         ObjectNode modelData = factory.createParser(buffer.toByteArray()).readValueAsTree();
 
         // set target version to @SerializeToVersion's value, @JsonVersionModel's defaultSerializeToVersion, or

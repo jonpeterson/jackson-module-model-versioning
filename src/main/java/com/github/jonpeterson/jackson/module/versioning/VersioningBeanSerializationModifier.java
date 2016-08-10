@@ -45,8 +45,8 @@ class VersioningBeanSerializationModifier extends BeanSerializerModifier {
             if(accessor.hasAnnotation(JsonSerializeToVersion.class)) {
                 if(serializeToVersionProperty != null)
                     throw new RuntimeException("@" + JsonSerializeToVersion.class.getSimpleName() + " must be present on at most one field or method");
-                if(accessor.getRawType() != String.class)
-                    throw new RuntimeException("@" + JsonSerializeToVersion.class.getSimpleName() + " must be on a String field or method that returns a String");
+                if(accessor.getRawType() != String.class || (definition.getField() == null && !definition.hasGetter()))
+                    throw new RuntimeException("@" + JsonSerializeToVersion.class.getSimpleName() + " must be on a field or a getter method that returns a String");
                 serializeToVersionProperty = definition;
             }
         }

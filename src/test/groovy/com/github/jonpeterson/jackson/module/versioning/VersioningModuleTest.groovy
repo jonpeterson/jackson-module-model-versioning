@@ -24,6 +24,8 @@
 package com.github.jonpeterson.jackson.module.versioning
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonSubTypes
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
@@ -49,6 +51,7 @@ class VersioningModuleTest extends Specification {
         String model
         int year
         boolean used
+        String _debugPreSerializationVersion
         String _debugPreDeserializationVersion
     }
 
@@ -70,6 +73,11 @@ class VersioningModuleTest extends Specification {
         String getSerializeToVersion() {
             return s2v
         }
+
+        @JsonSerializeToVersion
+        void setSerializeToVersion(String s2v) {
+            this.s2v = s2v
+        }
     }
 
     static class FieldSerializeToCar extends DefaultSerializeToCar {
@@ -78,7 +86,7 @@ class VersioningModuleTest extends Specification {
         String s2v
     }
 
-    static class MultipleSerializeToCar extends Car {
+    static class MultipleSerializeToCar1 extends Car {
 
         @JsonSerializeToVersion
         String s2v
@@ -89,10 +97,43 @@ class VersioningModuleTest extends Specification {
         }
     }
 
+    static class MultipleSerializeToCar2 extends Car {
+
+        @JsonSerializeToVersion
+        String s2vA
+
+        @JsonSerializeToVersion
+        String s2vB
+    }
+
+    static class MultipleSerializeToCar3 extends Car {
+
+        @JsonSerializeToVersion
+        String getSerializeToVersionA() {
+            return '1'
+        }
+
+        @JsonSerializeToVersion
+        String getSerializeToVersionB() {
+            return '1'
+        }
+    }
+
     static class WrongTypeSerializeToCar extends Car {
 
         @JsonSerializeToVersion
         int s2v
+    }
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = '_type')
+    @JsonSubTypes([
+        @JsonSubTypes.Type(value = HondaCar.class, name = 'honda')
+    ])
+    static abstract class AbstractCar extends FieldSerializeToCar {
+    }
+
+    static class HondaCar extends AbstractCar {
+        String somethingHondaSpecific
     }
 
 
@@ -222,6 +263,7 @@ class VersioningModuleTest extends Specification {
                     model: 'civic',
                     used: false,
                     year: 2016,
+                    _debugPreSerializationVersion: null,
                     _debugPreDeserializationVersion: '1'
                 ], [
                     modelVersion: '3',
@@ -229,6 +271,7 @@ class VersioningModuleTest extends Specification {
                     model: 'camry',
                     used: true,
                     year: 2012,
+                    _debugPreSerializationVersion: null,
                     _debugPreDeserializationVersion: '2'
                 ], [
                     modelVersion: '3',
@@ -236,6 +279,7 @@ class VersioningModuleTest extends Specification {
                     model: '6',
                     used: false,
                     year: 2017,
+                    _debugPreSerializationVersion: null,
                     _debugPreDeserializationVersion: null
                 ], [
                     modelVersion: '3',
@@ -243,6 +287,7 @@ class VersioningModuleTest extends Specification {
                     model: 'fusion',
                     used: true,
                     year: 2013,
+                    _debugPreSerializationVersion: null,
                     _debugPreDeserializationVersion: '4'
                 ]
             ],
@@ -313,17 +358,27 @@ class VersioningModuleTest extends Specification {
     }
 
     def 'errors'() {
-        when: 'multiple @SerializeTo'
-        mapper.writeValueAsString(new MultipleSerializeToCar())
+        when:
+        mapper.writeValueAsString(clazz.newInstance())
 
         then:
         thrown RuntimeException
 
+        where:
+        clazz << [MultipleSerializeToCar1, MultipleSerializeToCar2, MultipleSerializeToCar3, WrongTypeSerializeToCar]
+    }
 
-        when: 'wrong return type of @SerializeTo'
-        mapper.writeValueAsString(new WrongTypeSerializeToCar())
-
-        then:
-        thrown RuntimeException
+    def 'serialization with Jackson sub-types'() {
+        expect:
+        def serialized = mapper.writeValueAsString(new HondaCar(make: 'honda', model: 'civic', used: false, year: 2016, somethingHondaSpecific: 'blah'))
+        with(mapper.readValue(serialized, AbstractCar)) {
+            make == 'honda'
+            model == 'civic'
+            !used
+            year == 2016
+            somethingHondaSpecific == 'blah'
+            _debugPreSerializationVersion == '3'
+            _debugPreDeserializationVersion == '2'
+        }
     }
 }
