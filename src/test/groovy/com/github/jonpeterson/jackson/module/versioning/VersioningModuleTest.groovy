@@ -67,7 +67,7 @@ class VersioningModuleTest extends Specification {
     static class MethodSerializeToCar extends DefaultSerializeToCar {
 
         @JsonIgnore
-        String s2v
+        public String s2v
 
         @JsonSerializeToVersion
         String getSerializeToVersion() {
@@ -83,13 +83,13 @@ class VersioningModuleTest extends Specification {
     static class FieldSerializeToCar extends DefaultSerializeToCar {
 
         @JsonSerializeToVersion
-        String s2v
+        public String s2v
     }
 
     static class MultipleSerializeToCar1 extends Car {
 
         @JsonSerializeToVersion
-        String s2v
+        public String s2v
 
         @JsonSerializeToVersion
         String getSerializeToVersion() {
@@ -100,10 +100,10 @@ class VersioningModuleTest extends Specification {
     static class MultipleSerializeToCar2 extends Car {
 
         @JsonSerializeToVersion
-        String s2vA
+        public String s2vA
 
         @JsonSerializeToVersion
-        String s2vB
+        public String s2vB
     }
 
     static class MultipleSerializeToCar3 extends Car {
