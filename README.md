@@ -166,7 +166,8 @@ println mapper.writeValueAsString(hondaCivic)
 See the tests under `src/test/groovy` for more.
 
 ## Compatibility
-Compiled for Java 6 and tested with Jackson 2.2 - 2.8.
+* Requires Java 6 or higher
+* Requires Jackson 2.2 or higher (tested with Jackson 2.2 - 2.8).
 
 ## Getting Started with Gradle
 ```groovy

@@ -76,19 +76,22 @@ testJacksonVersions.each { version ->
     def safeVersion = version.replaceAll('\\.', '_')
 
     configurations {
-        it."testJackson${safeVersion}Compile".extendsFrom testCompile
-        it."testJackson${safeVersion}Runtime".extendsFrom testRuntime
+        "testJackson${safeVersion}Compile" {
+            extendsFrom testCompile
+        }
+        "testJackson${safeVersion}Runtime" {
+            extendsFrom testRuntime
+            resolutionStrategy {
+                force jacksonDatabind.replace(jacksonVersion, version)
+            }
+        }
     }
 
-    sourceSets{
+    sourceSets {
         it."testJackson$safeVersion" {
             compileClasspath += sourceSets.main.output + sourceSets.test.output
             runtimeClasspath += sourceSets.main.output + sourceSets.test.output
         }
-    }
-
-    dependencies {
-        it."testJackson${safeVersion}Compile" jacksonDatabind.replace(jacksonVersion, version)
     }
 
     task "testJackson$safeVersion"(type: Test) {

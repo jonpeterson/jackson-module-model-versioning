@@ -50,7 +50,10 @@ class VersioningModuleTest extends Specification {
         String make
         String model
         int year
-        boolean used
+
+        // have to prevent getter and is-getter due to Jackson 2.2 bug
+        public boolean used
+
         String _debugPreSerializationVersion
         String _debugPreDeserializationVersion
     }
@@ -254,7 +257,8 @@ class VersioningModuleTest extends Specification {
         )
 
         then:
-        mapper.convertValue(deserialized, Map) == [
+        // using write->read instead of convert method due to Jackson 2.2 bug
+        mapper.readValue(mapper.writeValueAsString(deserialized), Map) == [
             type: 'sedan',
             cars: [
                 [
