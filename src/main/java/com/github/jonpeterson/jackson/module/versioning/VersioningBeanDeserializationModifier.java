@@ -28,12 +28,15 @@ import com.fasterxml.jackson.databind.DeserializationConfig;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
+import static com.github.jonpeterson.jackson.module.versioning.VersioningBeanSerializationModifier.getSerializeToVersionProperty;
 
 class VersioningBeanDeserializationModifier extends BeanDeserializerModifier {
 
     // here just to make generics work without warnings
-    private static <T> VersionedModelDeserializer<T> createVersioningDeserializer(StdDeserializer<T> deserializer, JsonVersionedModel jsonVersionedModel) {
-        return new VersionedModelDeserializer<T>(deserializer, jsonVersionedModel);
+    private static <T> VersionedModelDeserializer<T> createVersioningDeserializer(StdDeserializer<T> deserializer, JsonVersionedModel jsonVersionedModel, 
+            BeanPropertyDefinition serializeToVersionProperty) {
+        return new VersionedModelDeserializer<T>(deserializer, jsonVersionedModel, serializeToVersionProperty);
     }
 
 
@@ -42,7 +45,8 @@ class VersioningBeanDeserializationModifier extends BeanDeserializerModifier {
         if(deserializer instanceof StdDeserializer) {
             JsonVersionedModel jsonVersionedModel = beanDescription.getClassAnnotations().get(JsonVersionedModel.class);
             if(jsonVersionedModel != null)
-                return createVersioningDeserializer((StdDeserializer)deserializer, jsonVersionedModel);
+                return createVersioningDeserializer((StdDeserializer)deserializer, jsonVersionedModel,
+                        getSerializeToVersionProperty(beanDescription));
         }
 
         return deserializer;

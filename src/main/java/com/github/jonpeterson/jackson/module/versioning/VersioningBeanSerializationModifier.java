@@ -38,7 +38,7 @@ class VersioningBeanSerializationModifier extends BeanSerializerModifier {
         return new VersionedModelSerializer<T>(serializer, jsonVersionedModel, serializeToVersionProperty);
     }
 
-    private static BeanPropertyDefinition getSerializeToVersionProperty(BeanDescription beanDescription) throws RuntimeException {
+    static BeanPropertyDefinition getSerializeToVersionProperty(BeanDescription beanDescription) throws RuntimeException {
         BeanPropertyDefinition serializeToVersionProperty = null;
         for(BeanPropertyDefinition definition: beanDescription.findProperties()) {
             AnnotatedMember accessor = definition.getAccessor();
