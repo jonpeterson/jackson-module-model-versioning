@@ -162,6 +162,39 @@ println mapper.writeValueAsString(hondaCivic)
 // prints '{"make": "honda", "model": "civic", "year": 2016, "new": "true", "modelVersion": "2"}'
 ```
 
+**Allow outbound serializeVersionTo to automatically match the inbound deserialized modelVersion
+```groovy
+@JsonVersionedModel(currentVersion = '3',
+                    toCurrentConverterClass = ToCurrentCarConverter,
+                    toPastConverterClass = ToPastCarConverter,
+                    defaultSerializeToVersionMatchModelVersion = true)
+class Car {
+    String make
+    String model
+    int year
+    boolean used
+
+    @JsonSerializeToVersion
+    String serializeToVersion
+}
+```
+
+Then your code for using this can change to this if you want the modelVersion to match:
+```groovy
+def mapper = new ObjectMapper().registerModule(new VersioningModule())
+
+// version 1 JSON -> POJO
+def hondaCivic = mapper.readValue(
+    '{"model": "honda:civic", "year": 2016, "new": "true", "modelVersion": "1"}',
+    Car
+)
+
+// POJO -> version 1 JSON
+println mapper.writeValueAsString(hondaCivic)
+// prints '{"model": "honda:civic", "year": 2016, "new": "true", "modelVersion": "1"}'
+```
+
+
 ### More Examples
 See the tests under `src/test/groovy` for more.
 

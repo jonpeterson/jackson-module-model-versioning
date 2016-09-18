@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.ResolvableDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 
@@ -38,13 +39,16 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
     private final StdDeserializer<T> delegate;
     private final JsonVersionedModel jsonVersionedModel;
     private final VersionedModelConverter converter;
-
-    VersionedModelDeserializer(StdDeserializer<T> delegate, JsonVersionedModel jsonVersionedModel) {
+    private final BeanPropertyDefinition serializeToVersionProperty;
+    
+    VersionedModelDeserializer(StdDeserializer<T> delegate, JsonVersionedModel jsonVersionedModel, 
+            BeanPropertyDefinition serializeToVersionProperty) {
         super(delegate.getValueType());
 
         this.delegate = delegate;
         this.jsonVersionedModel = jsonVersionedModel;
-
+        this.serializeToVersionProperty = serializeToVersionProperty;
+        
         try {
             this.converter = jsonVersionedModel.toCurrentConverterClass().newInstance();
         } catch(Exception e) {
@@ -75,7 +79,13 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
         if(modelVersion == null)
             throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was null");
 
-        if(jsonVersionedModel.alwaysConvert() || !modelVersion.equals(jsonVersionedModel.currentVersion()))
+        if(serializeToVersionProperty != null && jsonVersionedModel.defaultSerializeToVersionMatchModelVersion()) {
+            //Set the property automatically so that the outbound data gets serialized to the same version as what 
+            //was inbound
+            modelData.put(serializeToVersionProperty.getName(), modelVersion);
+        }
+        
+        if(converter != null && (jsonVersionedModel.alwaysConvert() || !modelVersion.equals(jsonVersionedModel.currentVersion())))
             modelData = converter.convert(modelData, modelVersion, jsonVersionedModel.currentVersion(), context.getNodeFactory());
 
         JsonParser postInterceptionParser = new TreeTraversingParser(modelData, parser.getCodec());
