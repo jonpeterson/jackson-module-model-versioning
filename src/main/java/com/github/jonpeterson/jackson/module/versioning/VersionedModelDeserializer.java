@@ -77,20 +77,36 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
         ObjectNode modelData = (ObjectNode)jsonNode;
 
         JsonNode modelVersionNode = modelData.remove(jsonVersionedModel.propertyName());
-        if(modelVersionNode == null)
-            throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was not present");
-
-        String modelVersion = modelVersionNode.asText();
-        if(modelVersion == null)
-            throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was null");
-
-        // convert the model if converter specified and model needs converting
-        if(converter != null && (jsonVersionedModel.alwaysConvert() || !modelVersion.equals(jsonVersionedModel.currentVersion())))
-            modelData = converter.convert(modelData, modelVersion, jsonVersionedModel.currentVersion(), context.getNodeFactory());
-
-        // set the serializeToVersionProperty value to the source model version if the defaultToSource property is true
-        if(serializeToVersionAnnotation != null && serializeToVersionAnnotation.defaultToSource())
-            modelData.put(serializeToVersionProperty.getName(), modelVersion);
+        String modelVersion = null;
+        if(modelVersionNode != null || !jsonVersionedModel.allowMissingProperty()) {
+            if (modelVersionNode == null && !jsonVersionedModel.allowMissingProperty()) {
+                throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was not present");
+            }
+            
+            modelVersion = modelVersionNode.asText();
+            
+            if (modelVersion == null) {
+                throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was null");
+            }
+            
+            // convert the model if converter specified and model needs converting
+            if (converter != null && (jsonVersionedModel.alwaysConvert() || !modelVersion.equals(jsonVersionedModel.
+                    currentVersion()))) {
+                modelData = converter.convert(modelData, modelVersion, jsonVersionedModel.currentVersion(), context.
+                        getNodeFactory());
+            }
+            
+            // set the serializeToVersionProperty value to the source model version if the defaultToSource property is true
+            if (serializeToVersionAnnotation != null && serializeToVersionAnnotation.defaultToSource()) {
+                modelData.put(serializeToVersionProperty.getName(), modelVersion);
+            }
+        } else {
+            // convert the model if converter specified and model needs converting
+            if (converter != null) {
+                modelData = converter.convert(modelData, modelVersion, jsonVersionedModel.currentVersion(), context.
+                        getNodeFactory());
+            }            
+        }
 
         JsonParser postInterceptionParser = new TreeTraversingParser(modelData, parser.getCodec());
         postInterceptionParser.nextToken();

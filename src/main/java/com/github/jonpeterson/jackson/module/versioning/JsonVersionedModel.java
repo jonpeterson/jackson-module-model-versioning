@@ -71,4 +71,9 @@ public @interface JsonVersionedModel {
      * @return name of property in which the model's version is stored in JSON
      */
     String propertyName() default "modelVersion";
+
+    /**
+     * @return true for allowing non-existent propertyName() for inbound JSON, false otherwise
+     */
+    public boolean allowMissingProperty() default false;
 }
