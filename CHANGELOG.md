@@ -1,3 +1,9 @@
+## 1.2.0 (????-??-??)
+
+- brentryan:   Made @JsonVersionedModel.toCurrentConverter optional for when used on version 1 of a model.
+- brentryan:   Added ability to have serializeToVersion match the source model version when deserializing.
+- jonpeterson: Added tests for @brentryan's changes, fixed a couple bugs, and polished.
+
 ## 1.1.1 (2016-08-10)
 
 - jonpeterson: Fixed bug that caused error while serializing models using @JsonSubTypes.

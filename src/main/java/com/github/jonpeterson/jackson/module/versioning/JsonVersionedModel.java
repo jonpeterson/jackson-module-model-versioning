@@ -45,37 +45,30 @@ public @interface JsonVersionedModel {
 
     /**
      * @return the version to convert the model to during serialization; this can be overridden by using
-     * {@link JsonSerializeToVersion}
+     *         {@link JsonSerializeToVersion}
      */
     String defaultSerializeToVersion() default "";
 
     /**
      * @return class of the converter to use when resolving versioning to the current version; not specifying will cause
-     * models to not be converted at all.
+     *         models to not be converted at all
      */
     Class<? extends VersionedModelConverter> toCurrentConverterClass() default VersionedModelConverter.class;
 
     /**
      * @return class of the converter to use when resolving versioning to a past version; not specifying will cause
-     * models to be serialized as the current version
+     *         models to be serialized as the current version
      */
     Class<? extends VersionedModelConverter> toPastConverterClass() default VersionedModelConverter.class;
 
     /**
      * @return whether to always send model data to converters, even when the data is the same version as the version to
-     * convert to.
+     *         convert to
      */
     boolean alwaysConvert() default false;
 
     /**
-     * @return name of property in which the model's version is stored in JSON.
+     * @return name of property in which the model's version is stored in JSON
      */
     String propertyName() default "modelVersion";
-
-    /**
-     * Indicates if the default serializeToVersion should match the modelVersion of what was deserialized.  This is
-     * handy when dealing with services that want to respond with the same version that was requested for a service.
-     * @return Returns true if you want the serializeToVersion to match in deserialized modelVersion, false otherwise.
-     */
-    boolean defaultSerializeToVersionMatchModelVersion() default false;
 }

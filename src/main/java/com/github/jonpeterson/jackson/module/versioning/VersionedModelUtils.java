@@ -24,28 +24,28 @@
 package com.github.jonpeterson.jackson.module.versioning;
 
 import com.fasterxml.jackson.databind.BeanDescription;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializationConfig;
+import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
-import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
-class VersioningBeanSerializationModifier extends BeanSerializerModifier {
+public class VersionedModelUtils {
 
-    // here just to make generics work without warnings
-    private static <T> VersionedModelSerializer<T> createVersioningSerializer(StdSerializer<T> serializer, JsonVersionedModel jsonVersionedModel, BeanPropertyDefinition serializeToVersionProperty) {
-        return new VersionedModelSerializer<T>(serializer, jsonVersionedModel, serializeToVersionProperty);
+    public static BeanPropertyDefinition getSerializeToVersionProperty(BeanDescription beanDescription) throws RuntimeException {
+        BeanPropertyDefinition serializeToVersionProperty = null;
+        for(BeanPropertyDefinition definition: beanDescription.findProperties()) {
+            AnnotatedMember accessor = definition.getAccessor();
+            if(accessor != null && accessor.hasAnnotation(JsonSerializeToVersion.class)) {
+                if(serializeToVersionProperty != null)
+                    throw new RuntimeException("@" + JsonSerializeToVersion.class.getSimpleName() + " must be present on at most one field or method");
+                if(accessor.getRawType() != String.class || (definition.getField() == null && !definition.hasGetter()))
+                    throw new RuntimeException("@" + JsonSerializeToVersion.class.getSimpleName() + " must be on a field or a getter method that returns a String");
+                serializeToVersionProperty = definition;
+            }
+        }
+
+        return serializeToVersionProperty;
     }
 
 
-    @Override
-    public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDescription, JsonSerializer<?> serializer) {
-        if(serializer instanceof StdSerializer) {
-            JsonVersionedModel jsonVersionedModel = beanDescription.getClassAnnotations().get(JsonVersionedModel.class);
-            if(jsonVersionedModel != null)
-                return createVersioningSerializer((StdSerializer)serializer, jsonVersionedModel, VersionedModelUtils.getSerializeToVersionProperty(beanDescription));
-        }
-
-        return serializer;
+    private VersionedModelUtils() {
     }
 }

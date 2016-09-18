@@ -44,4 +44,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @JacksonAnnotation
 public @interface JsonSerializeToVersion {
+
+    /**
+     * @return whether to set this property to the source model version during deserialization
+     */
+    boolean defaultToSource() default false;
 }

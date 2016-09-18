@@ -89,6 +89,28 @@ class VersioningModuleTest extends Specification {
         public String s2v
     }
 
+    static class SourceVersionMethodSerializeToCar extends DefaultSerializeToCar {
+
+        @JsonIgnore
+        public String s2v
+
+        @JsonSerializeToVersion(defaultToSource = true)
+        String getSerializeToVersion() {
+            return s2v
+        }
+
+        @JsonSerializeToVersion(defaultToSource = true)
+        void setSerializeToVersion(String s2v) {
+            this.s2v = s2v
+        }
+    }
+
+    static class SourceVersionFieldSerializeToCar extends DefaultSerializeToCar {
+
+        @JsonSerializeToVersion(defaultToSource = true)
+        public String s2v
+    }
+
     static class MultipleSerializeToCar1 extends Car {
 
         @JsonSerializeToVersion
@@ -359,6 +381,23 @@ class VersioningModuleTest extends Specification {
         FieldSerializeToCar  | '3'                | [_version: '3', make: 'honda', model: 'civic', used: false, year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
         MethodSerializeToCar | '4'                | [_version: '4', make: 'honda', model: 'civic', used: false, year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
         FieldSerializeToCar  | '4'                | [_version: '4', make: 'honda', model: 'civic', used: false, year: 2016, _debugPreDeserializationVersion: null, _debugPreSerializationVersion: '3']
+    }
+
+    @Unroll
+    def 'abc #clazz.simpleName'() {
+        when:
+        def car = mapper.readValue('{"model": "toyota:camry", "year": 2012, "new": "false", "_version": "1"}', clazz)
+        car.year = 2013
+
+        then:
+        mapper.readValue(mapper.writeValueAsString(car), Map) == expected
+
+        where:
+        clazz                             | expected
+        FieldSerializeToCar               | [_version: '2', make: 'toyota', model: 'camry', new: 'false', year: 2013, _debugPreDeserializationVersion: '1', _debugPreSerializationVersion: '3']
+        MethodSerializeToCar              | [_version: '2', make: 'toyota', model: 'camry', new: 'false', year: 2013, _debugPreDeserializationVersion: '1', _debugPreSerializationVersion: '3']
+        SourceVersionFieldSerializeToCar  | [_version: '1', model: 'toyota:camry', new: 'false', year: 2013, _debugPreDeserializationVersion: '1', _debugPreSerializationVersion: '3']
+        SourceVersionMethodSerializeToCar | [_version: '1', model: 'toyota:camry', new: 'false', year: 2013, _debugPreDeserializationVersion: '1', _debugPreSerializationVersion: '3']
     }
 
     def 'errors'() {

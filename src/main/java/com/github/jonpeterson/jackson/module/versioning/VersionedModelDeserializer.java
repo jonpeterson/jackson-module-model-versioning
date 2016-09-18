@@ -40,20 +40,25 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
     private final JsonVersionedModel jsonVersionedModel;
     private final VersionedModelConverter converter;
     private final BeanPropertyDefinition serializeToVersionProperty;
-    
-    VersionedModelDeserializer(StdDeserializer<T> delegate, JsonVersionedModel jsonVersionedModel, 
-            BeanPropertyDefinition serializeToVersionProperty) {
+    private final JsonSerializeToVersion serializeToVersionAnnotation;
+
+    VersionedModelDeserializer(StdDeserializer<T> delegate, JsonVersionedModel jsonVersionedModel, BeanPropertyDefinition serializeToVersionProperty) {
         super(delegate.getValueType());
 
         this.delegate = delegate;
         this.jsonVersionedModel = jsonVersionedModel;
         this.serializeToVersionProperty = serializeToVersionProperty;
-        
-        try {
-            this.converter = jsonVersionedModel.toCurrentConverterClass().newInstance();
-        } catch(Exception e) {
-            throw new RuntimeException("unable to create instance of converter '" + jsonVersionedModel.toCurrentConverterClass().getName() + "'", e);
-        }
+        this.serializeToVersionAnnotation = serializeToVersionProperty != null ? serializeToVersionProperty.getAccessor().getAnnotation(JsonSerializeToVersion.class) : null;
+
+        Class<? extends VersionedModelConverter> converterClass = jsonVersionedModel.toCurrentConverterClass();
+        if(converterClass != VersionedModelConverter.class)
+            try {
+                this.converter = converterClass.newInstance();
+            } catch(Exception e) {
+                throw new RuntimeException("unable to create instance of converter '" + converterClass.getName() + "'", e);
+            }
+        else
+            converter = null;
     }
 
     @Override
@@ -79,14 +84,13 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
         if(modelVersion == null)
             throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was null");
 
-        if(serializeToVersionProperty != null && jsonVersionedModel.defaultSerializeToVersionMatchModelVersion()) {
-            //Set the property automatically so that the outbound data gets serialized to the same version as what 
-            //was inbound
-            modelData.put(serializeToVersionProperty.getName(), modelVersion);
-        }
-        
+        // convert the model if converter specified and model needs converting
         if(converter != null && (jsonVersionedModel.alwaysConvert() || !modelVersion.equals(jsonVersionedModel.currentVersion())))
             modelData = converter.convert(modelData, modelVersion, jsonVersionedModel.currentVersion(), context.getNodeFactory());
+
+        // set the serializeToVersionProperty value to the source model version if the defaultToSource property is true
+        if(serializeToVersionAnnotation != null && serializeToVersionAnnotation.defaultToSource())
+            modelData.put(serializeToVersionProperty.getName(), modelVersion);
 
         JsonParser postInterceptionParser = new TreeTraversingParser(modelData, parser.getCodec());
         postInterceptionParser.nextToken();
