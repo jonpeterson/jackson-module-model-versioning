@@ -162,24 +162,24 @@ println mapper.writeValueAsString(hondaCivic)
 // prints '{"make": "honda", "model": "civic", "year": 2016, "new": "true", "modelVersion": "2"}'
 ```
 
-**Allow outbound serializeVersionTo to automatically match the inbound deserialized modelVersion
+### Serializing to the Source Model's Version
+**Using the `defaultToSource` flag on `@JsonSerializeToVersion` will set the specified serializeToVersion property to the original model's version. This is useful when wanting to deserialize a model and reserialize in the same version format.**
 ```groovy
 @JsonVersionedModel(currentVersion = '3',
                     toCurrentConverterClass = ToCurrentCarConverter,
-                    toPastConverterClass = ToPastCarConverter,
-                    defaultSerializeToVersionMatchModelVersion = true)
+                    toPastConverterClass = ToPastCarConverter)
 class Car {
     String make
     String model
     int year
     boolean used
 
-    @JsonSerializeToVersion
+    @JsonSerializeToVersion(defaultToSource = true)
     String serializeToVersion
 }
 ```
 
-Then your code for using this can change to this if you want the modelVersion to match:
+**Running the same test code from above now yields a different result where the serialized output model's version matches the deserialized input model's version:**
 ```groovy
 def mapper = new ObjectMapper().registerModule(new VersioningModule())
 
