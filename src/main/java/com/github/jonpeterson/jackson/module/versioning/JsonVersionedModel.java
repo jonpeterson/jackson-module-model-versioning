@@ -44,10 +44,16 @@ public @interface JsonVersionedModel {
     String currentVersion();
 
     /**
-     * @return the version to convert the model to during serialization; this can be overridden by using
-     *         {@link JsonSerializeToVersion}
+     * @return the default version to convert the model to during serialization when no field or getter method is
+     *         annotated with {@link JsonSerializeToVersion}; if not set, the current version is used
      */
     String defaultSerializeToVersion() default "";
+
+    /**
+     * @return the default version to convert the model to during deserialization when no model version property is
+     *         present; if not set, an exception is thrown when the model version property is missing
+     */
+    String defaultDeserializeToVersion() default "";
 
     /**
      * @return class of the converter to use when resolving versioning to the current version; not specifying will cause
@@ -71,9 +77,4 @@ public @interface JsonVersionedModel {
      * @return name of property in which the model's version is stored in JSON
      */
     String propertyName() default "modelVersion";
-
-    /**
-     * @return the default version to use if the propertyName() attribute is not available.
-     */
-    String defaultDeserializeToVersion() default "";
 }

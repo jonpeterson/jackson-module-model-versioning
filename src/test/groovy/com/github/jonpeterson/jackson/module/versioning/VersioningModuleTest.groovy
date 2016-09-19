@@ -26,6 +26,7 @@ package com.github.jonpeterson.jackson.module.versioning
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
@@ -56,6 +57,12 @@ class VersioningModuleTest extends Specification {
 
         String _debugPreSerializationVersion
         String _debugPreDeserializationVersion
+    }
+
+    @JsonVersionedModel(currentVersion = '3',
+                        toCurrentConverterClass = ToCurrentCarConverter,
+                        defaultDeserializeToVersion = '1')
+    static class DefaultDeserializeToCar extends Car {
     }
 
     @JsonVersionedModel(currentVersion = '3',
@@ -384,7 +391,7 @@ class VersioningModuleTest extends Specification {
     }
 
     @Unroll
-    def 'abc #clazz.simpleName'() {
+    def 'serialize with source version #clazz.simpleName'() {
         when:
         def car = mapper.readValue('{"model": "toyota:camry", "year": 2012, "new": "false", "_version": "1"}', clazz)
         car.year = 2013
@@ -398,6 +405,31 @@ class VersioningModuleTest extends Specification {
         MethodSerializeToCar              | [_version: '2', make: 'toyota', model: 'camry', new: 'false', year: 2013, _debugPreDeserializationVersion: '1', _debugPreSerializationVersion: '3']
         SourceVersionFieldSerializeToCar  | [_version: '1', model: 'toyota:camry', new: 'false', year: 2013, _debugPreDeserializationVersion: '1', _debugPreSerializationVersion: '3']
         SourceVersionMethodSerializeToCar | [_version: '1', model: 'toyota:camry', new: 'false', year: 2013, _debugPreDeserializationVersion: '1', _debugPreSerializationVersion: '3']
+    }
+
+    @Unroll
+    def 'missing version'() {
+        when: 'no version specified'
+        mapper.readValue('{"model": "toyota:camry", "year": 2012, "new": "false"}', Car)
+
+        then: 'throw exception since no defaultDeserializeToVersion on Car'
+        thrown JsonMappingException
+
+
+        when: 'no version specified'
+        def car = mapper.readValue('{"model": "toyota:camry", "year": 2012, "new": "false"}', DefaultDeserializeToCar)
+
+        then: 'treat it as version 1 as specified by defaultDeserializeToVersion on DefaultDeserializeToCar'
+        // using write->read instead of convert method due to Jackson 2.2 bug
+        mapper.readValue(mapper.writeValueAsString(car), Map) == [
+            make: 'toyota',
+            model: 'camry',
+            modelVersion: '3',
+            used: true,
+            year: 2012,
+            _debugPreDeserializationVersion: '1',
+            _debugPreSerializationVersion: null
+        ]
     }
 
     def 'errors'() {
