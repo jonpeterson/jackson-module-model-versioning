@@ -73,7 +73,7 @@ public @interface JsonVersionedModel {
     String propertyName() default "modelVersion";
 
     /**
-     * @return true for allowing non-existent propertyName() for inbound JSON, false otherwise
+     * @return the default version to use if the propertyName() attribute is not available.
      */
-    public boolean allowMissingProperty() default false;
+    String defaultDeserializeToVersion() default "";
 }
