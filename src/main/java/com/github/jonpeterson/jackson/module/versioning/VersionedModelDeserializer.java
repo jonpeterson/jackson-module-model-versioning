@@ -48,7 +48,18 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
         this.delegate = delegate;
         this.jsonVersionedModel = jsonVersionedModel;
         this.serializeToVersionProperty = serializeToVersionProperty;
-        this.serializeToVersionAnnotation = serializeToVersionProperty != null ? serializeToVersionProperty.getAccessor().getAnnotation(JsonSerializeToVersion.class) : null;
+        
+        if(serializeToVersionProperty != null) {
+            JsonSerializeToVersion annotatedJsonSerializeToVersion = serializeToVersionProperty.getAccessor().getAnnotation(JsonSerializeToVersion.class);
+            
+            //Allow the field to be annotated and not just the accessor
+            if(annotatedJsonSerializeToVersion == null) {
+                annotatedJsonSerializeToVersion = serializeToVersionProperty.getField().getAnnotation(JsonSerializeToVersion.class);
+            }
+            this.serializeToVersionAnnotation = annotatedJsonSerializeToVersion;
+        } else {
+            this.serializeToVersionAnnotation = null;
+        }
 
         Class<? extends VersionedModelConverter> converterClass = jsonVersionedModel.toCurrentConverterClass();
         if(converterClass != VersionedModelConverter.class)
