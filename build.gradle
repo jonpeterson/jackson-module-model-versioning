@@ -114,17 +114,13 @@ task sourcesJar(type: Jar) {
     from sourceSets.main.allSource
 }
 
-build {
-    dependsOn javadocJar
-    dependsOn sourcesJar
-}
-
 artifacts {
     archives javadocJar
     archives sourcesJar
 }
 
 signing {
+    required { gradle.taskGraph.hasTask("uploadArchives") }
     sign configurations.archives
 }
 
