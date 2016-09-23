@@ -106,13 +106,13 @@ class VersionedModelSerializer<T> extends StdSerializer<T> implements Resolvable
         if(targetVersion.isEmpty())
             targetVersion = jsonVersionedModel.currentVersion();
 
+        // add target version to model data
+        modelData.put(jsonVersionedModel.propertyName(), targetVersion);
+
         // convert model data if there is a converter and targetVersion is different than the currentVersion or if
         //   alwaysConvert is true
         if(converter != null && (jsonVersionedModel.alwaysConvert() || !targetVersion.equals(jsonVersionedModel.currentVersion())))
             modelData = converter.convert(modelData, jsonVersionedModel.currentVersion(), targetVersion, JsonNodeFactory.instance);
-
-        // add target version to model data
-        modelData.put(jsonVersionedModel.propertyName(), targetVersion);
 
         // write node
         generator.writeTree(modelData);
