@@ -48,8 +48,21 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
         this.delegate = delegate;
         this.jsonVersionedModel = jsonVersionedModel;
         this.serializeToVersionProperty = serializeToVersionProperty;
-        this.serializeToVersionAnnotation = serializeToVersionProperty != null ? serializeToVersionProperty.getAccessor().getAnnotation(JsonSerializeToVersion.class) : null;
-
+        
+        if (serializeToVersionProperty != null) {
+            JsonSerializeToVersion annotatedJsonSerializeToVersion = serializeToVersionProperty.getAccessor().
+                    getAnnotation(
+                            JsonSerializeToVersion.class);
+            //Allow the field to be annotated and not just the accessor
+            if (annotatedJsonSerializeToVersion == null) {
+                annotatedJsonSerializeToVersion = serializeToVersionProperty.getField().getAnnotation(
+                        JsonSerializeToVersion.class);
+            }
+            this.serializeToVersionAnnotation = annotatedJsonSerializeToVersion;
+        } else {
+            this.serializeToVersionAnnotation = null;
+        }
+        
         Class<? extends VersionedModelConverter> converterClass = jsonVersionedModel.toCurrentConverterClass();
         if(converterClass != VersionedModelConverter.class)
             try {
@@ -78,16 +91,17 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
 
         JsonNode modelVersionNode = modelData.remove(jsonVersionedModel.propertyName());
 
-        String modelVersion = null;
-        if(modelVersionNode != null)
-            modelVersion = modelVersionNode.asText();
-
-        if(modelVersion == null)
+        String modelVersion;
+        if (modelVersionNode == null) {
             modelVersion = jsonVersionedModel.defaultDeserializeToVersion();
+        } else {
+            modelVersion = modelVersionNode.asText();
+        }
 
-        if(modelVersion.isEmpty())
-            throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was null and defaultDeserializeToVersion was not set");
-
+        if(modelVersion == null) {
+            throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was null");
+        }
+        
         // convert the model if converter specified and model needs converting
         if(converter != null && (jsonVersionedModel.alwaysConvert() || !modelVersion.equals(jsonVersionedModel.currentVersion())))
             modelData = converter.convert(modelData, modelVersion, jsonVersionedModel.currentVersion(), context.getNodeFactory());
