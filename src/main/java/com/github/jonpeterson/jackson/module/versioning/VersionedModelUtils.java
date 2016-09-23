@@ -26,12 +26,18 @@ package com.github.jonpeterson.jackson.module.versioning;
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
+import com.fasterxml.jackson.databind.introspect.POJOPropertyBuilder;
 
 public class VersionedModelUtils {
 
     public static BeanPropertyDefinition getSerializeToVersionProperty(BeanDescription beanDescription) throws RuntimeException {
         BeanPropertyDefinition serializeToVersionProperty = null;
         for(BeanPropertyDefinition definition: beanDescription.findProperties()) {
+
+            // merge field and accessor annotations
+            if(definition instanceof POJOPropertyBuilder)
+                ((POJOPropertyBuilder)definition).mergeAnnotations(true);
+
             AnnotatedMember accessor = definition.getAccessor();
             if(accessor != null && accessor.hasAnnotation(JsonSerializeToVersion.class)) {
                 if(serializeToVersionProperty != null)
