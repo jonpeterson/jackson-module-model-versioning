@@ -82,14 +82,11 @@ class VersionedModelSerializer<T> extends StdSerializer<T> implements Resolvable
         // TODO: find a better way to convert the value into a tree
         JsonFactory factory = generator.getCodec().getFactory();
         ByteArrayOutputStream buffer = new ByteArrayOutputStream(4096);
-        JsonGenerator bufferGenerator = factory.createGenerator(buffer);
-        try {
+        try (JsonGenerator bufferGenerator = factory.createGenerator(buffer)) {
             if(typeSerializer != null)
                 delegate.serializeWithType(value, bufferGenerator, provider, typeSerializer);
             else
                 delegate.serialize(value, bufferGenerator, provider);
-        } finally {
-            bufferGenerator.close();
         }
 
         ObjectNode modelData = factory.createParser(buffer.toByteArray()).readValueAsTree();
@@ -111,8 +108,10 @@ class VersionedModelSerializer<T> extends StdSerializer<T> implements Resolvable
         if(converter != null && (jsonVersionedModel.alwaysConvert() || !targetVersion.equals(jsonVersionedModel.currentVersion())))
             modelData = converter.convert(modelData, jsonVersionedModel.currentVersion(), targetVersion, JsonNodeFactory.instance);
 
-        // add target version to model data
-        modelData.put(jsonVersionedModel.propertyName(), targetVersion);
+        // add target version to model data if it wasn't the default
+        if (!targetVersion.equals(jsonVersionedModel.defaultDeserializeToVersion())) {
+            modelData.put(jsonVersionedModel.propertyName(), targetVersion);
+        }
 
         // write node
         generator.writeTree(modelData);

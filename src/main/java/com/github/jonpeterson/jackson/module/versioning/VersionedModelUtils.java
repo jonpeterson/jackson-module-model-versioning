@@ -24,6 +24,7 @@
 package com.github.jonpeterson.jackson.module.versioning;
 
 import com.fasterxml.jackson.databind.BeanDescription;
+import com.fasterxml.jackson.databind.introspect.AnnotatedField;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 
@@ -33,7 +34,10 @@ public class VersionedModelUtils {
         BeanPropertyDefinition serializeToVersionProperty = null;
         for(BeanPropertyDefinition definition: beanDescription.findProperties()) {
             AnnotatedMember accessor = definition.getAccessor();
-            if(accessor != null && accessor.hasAnnotation(JsonSerializeToVersion.class)) {
+            AnnotatedField field = definition.getField();
+            
+            if ((accessor != null && accessor.hasAnnotation(JsonSerializeToVersion.class)) 
+                    || (field != null && field.hasAnnotation(JsonSerializeToVersion.class))) {
                 if(serializeToVersionProperty != null)
                     throw new RuntimeException("@" + JsonSerializeToVersion.class.getSimpleName() + " must be present on at most one field or method");
                 if(accessor.getRawType() != String.class || (definition.getField() == null && !definition.hasGetter()))
