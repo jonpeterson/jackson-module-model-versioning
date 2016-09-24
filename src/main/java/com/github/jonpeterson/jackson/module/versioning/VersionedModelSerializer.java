@@ -111,8 +111,8 @@ class VersionedModelSerializer<T> extends StdSerializer<T> implements Resolvable
         if(converter != null && (jsonVersionedModel.alwaysConvert() || !targetVersion.equals(jsonVersionedModel.currentVersion())))
             modelData = converter.convert(modelData, jsonVersionedModel.currentVersion(), targetVersion, JsonNodeFactory.instance);
 
-        // add target version to model data if it wasn't the default
-        if(!targetVersion.equals(jsonVersionedModel.defaultDeserializeToVersion()))
+        // add target version to model data if it wasn't the version to suppress
+        if(!targetVersion.equals(jsonVersionedModel.versionToSuppressPropertySerialization()))
             modelData.put(jsonVersionedModel.propertyName(), targetVersion);
 
         // write node

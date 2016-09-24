@@ -118,6 +118,15 @@ class VersioningModuleTest extends Specification {
         public String s2v
     }
 
+    @JsonVersionedModel(currentVersion = '3',
+                        toCurrentConverterClass = ToCurrentCarConverter,
+                        toPastConverterClass = ToPastCarConverter,
+                        defaultSerializeToVersion = '1',
+                        defaultDeserializeToVersion = '1',
+                        versionToSuppressPropertySerialization = '1')
+    static class DefaultSourceVersionFieldSerializeToCar extends SourceVersionFieldSerializeToCar {
+    }
+
     static class MultipleSerializeToCar1 extends Car {
 
         @JsonSerializeToVersion
@@ -429,6 +438,20 @@ class VersioningModuleTest extends Specification {
             year: 2012,
             _debugPreDeserializationVersion: '1',
             _debugPreSerializationVersion: null
+        ]
+
+
+        when: 'no version specified'
+        car = mapper.readValue('{"model": "toyota:camry", "year": 2012, "new": "false"}', DefaultSourceVersionFieldSerializeToCar)
+
+        then: 'treat it as version 1 as specified by defaultDeserializeToVersion on DefaultSourceVersionFieldSerializeToCar'
+        // using write->read instead of convert method due to Jackson 2.2 bug
+        mapper.readValue(mapper.writeValueAsString(car), Map) == [
+            model: 'toyota:camry',
+            new: "false",
+            year: 2012,
+            _debugPreDeserializationVersion: '1',
+            _debugPreSerializationVersion: '3'
         ]
     }
 

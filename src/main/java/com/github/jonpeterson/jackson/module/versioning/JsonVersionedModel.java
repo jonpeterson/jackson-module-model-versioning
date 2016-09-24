@@ -77,4 +77,10 @@ public @interface JsonVersionedModel {
      * @return name of property in which the model's version is stored in JSON
      */
     String propertyName() default "modelVersion";
+
+    /**
+     * @return a version for when the model version property should not be serialized; if not set, the version property
+     *         is always serialized
+     */
+    String versionToSuppressPropertySerialization() default "";
 }
