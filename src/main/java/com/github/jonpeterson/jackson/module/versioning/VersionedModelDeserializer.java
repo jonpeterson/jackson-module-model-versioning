@@ -41,7 +41,8 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
     private final VersionedModelConverter converter;
     private final BeanPropertyDefinition serializeToVersionProperty;
     private final JsonSerializeToVersion serializeToVersionAnnotation;
-
+    private static final String CONVERTED_MODEL = "convertedModel";
+    
     VersionedModelDeserializer(StdDeserializer<T> delegate, JsonVersionedModel jsonVersionedModel, BeanPropertyDefinition serializeToVersionProperty) {
         super(delegate.getValueType());
 
@@ -69,35 +70,38 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
 
     @Override
     public T deserialize(JsonParser parser, DeserializationContext context) throws IOException {
-        JsonNode jsonNode = parser.readValueAsTree();
+        ObjectNode modelData = (ObjectNode) context.getAttribute(CONVERTED_MODEL);
+        if (null == modelData) {
+            JsonNode jsonNode = parser.readValueAsTree();
 
-        if(!(jsonNode instanceof ObjectNode))
-            throw context.mappingException("value must be a JSON object");
+            if(!(jsonNode instanceof ObjectNode))
+                throw context.mappingException("value must be a JSON object");
 
-        ObjectNode modelData = (ObjectNode)jsonNode;
+            modelData = (ObjectNode)jsonNode;
 
-        JsonNode modelVersionNode = modelData.remove(jsonVersionedModel.propertyName());
+            JsonNode modelVersionNode = modelData.remove(jsonVersionedModel.propertyName());
 
-        String modelVersion = null;
-        if(modelVersionNode != null)
-            modelVersion = modelVersionNode.asText();
+            String modelVersion = null;
+            if(modelVersionNode != null)
+                modelVersion = modelVersionNode.asText();
 
-        if(modelVersion == null)
-            modelVersion = jsonVersionedModel.defaultDeserializeToVersion();
+            if(modelVersion == null)
+                modelVersion = jsonVersionedModel.defaultDeserializeToVersion();
 
-        if(modelVersion.isEmpty())
-            throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was null and defaultDeserializeToVersion was not set");
+            if(modelVersion.isEmpty())
+                throw context.mappingException("'" + jsonVersionedModel.propertyName() + "' property was null and defaultDeserializeToVersion was not set");
 
-        // convert the model if converter specified and model needs converting
-        if(converter != null && (jsonVersionedModel.alwaysConvert() || !modelVersion.equals(jsonVersionedModel.currentVersion())))
-            modelData = converter.convert(modelData, modelVersion, jsonVersionedModel.currentVersion(), context.getNodeFactory());
+            // convert the model if converter specified and model needs converting
+            if(converter != null && (jsonVersionedModel.alwaysConvert() || !modelVersion.equals(jsonVersionedModel.currentVersion())))
+                modelData = converter.convert(modelData, modelVersion, jsonVersionedModel.currentVersion(), context.getNodeFactory());
 
-        // set the serializeToVersionProperty value to the source model version if the defaultToSource property is true
-        if(serializeToVersionAnnotation != null && serializeToVersionAnnotation.defaultToSource())
-            modelData.put(serializeToVersionProperty.getName(), modelVersion);
-
+            // set the serializeToVersionProperty value to the source model version if the defaultToSource property is true
+            if(serializeToVersionAnnotation != null && serializeToVersionAnnotation.defaultToSource())
+                modelData.put(serializeToVersionProperty.getName(), modelVersion);
+        }
+        
         JsonParser postInterceptionParser = new TreeTraversingParser(modelData, parser.getCodec());
         postInterceptionParser.nextToken();
-        return delegate.deserialize(postInterceptionParser, context);
-    }
+        context.setAttribute(CONVERTED_MODEL, modelData);
+        return delegate.deserialize(postInterceptionParser, context);    }
 }
