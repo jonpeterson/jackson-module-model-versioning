@@ -205,7 +205,7 @@ See the tests under `src/test/groovy` for more.
 ## Getting Started with Gradle
 ```groovy
 dependencies {
-    compile 'com.github.jonpeterson:jackson-module-model-versioning:1.1.1'
+    compile 'com.github.jonpeterson:jackson-module-model-versioning:1.2.2'
 }
 ```
 
@@ -214,10 +214,10 @@ dependencies {
 <dependency>
     <groupId>com.github.jonpeterson</groupId>
     <artifactId>jackson-module-model-versioning</artifactId>
-    <version>1.1.1</version>
+    <version>1.2.2</version>
 </dependency>
 ```
 
-## [JavaDoc](https://jonpeterson.github.io/docs/jackson-module-model-versioning/1.1.1/index.html)
+## [JavaDoc](https://jonpeterson.github.io/docs/jackson-module-model-versioning/1.2.2/index.html)
 
 ## [Changelog](CHANGELOG.md)
