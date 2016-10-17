@@ -37,7 +37,7 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-public final class VersionedModelSerializer<T> extends StdSerializer<T> implements ResolvableSerializer {
+public class VersionedModelSerializer<T> extends StdSerializer<T> implements ResolvableSerializer {
     private final StdSerializer<T> delegate;
     private final JsonVersionedModel jsonVersionedModel;
     private final VersionedModelConverter converter;

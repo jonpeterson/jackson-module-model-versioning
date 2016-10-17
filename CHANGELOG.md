@@ -1,7 +1,11 @@
+## 1.2.2 (2016-10-17)
+
+- brentryan: Made serializer and deserializer classes public to use outside of standard module.
+
 ## 1.2.1 (2016-09-24)
 
 - jonpeterson: Fixed merging of field and accessor annotations.
-- jonpeterson: Added a property to @JsonVersionedModel to specify a model version in which serialization of the modelVersion should be supressed.
+- jonpeterson: Added a property to @JsonVersionedModel to specify a model version in which serialization of the modelVersion should be suppressed.
 
 ## 1.2.0 (2016-09-22)
 

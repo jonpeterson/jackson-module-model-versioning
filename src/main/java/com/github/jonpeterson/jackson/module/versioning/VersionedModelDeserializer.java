@@ -35,7 +35,7 @@ import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 
 import java.io.IOException;
 
-public final class VersionedModelDeserializer<T> extends StdDeserializer<T> implements ResolvableDeserializer {
+public class VersionedModelDeserializer<T> extends StdDeserializer<T> implements ResolvableDeserializer {
     private final StdDeserializer<T> delegate;
     private final JsonVersionedModel jsonVersionedModel;
     private final VersionedModelConverter converter;
