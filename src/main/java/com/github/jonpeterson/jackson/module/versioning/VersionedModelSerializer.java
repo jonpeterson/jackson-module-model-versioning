@@ -37,13 +37,13 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-class VersionedModelSerializer<T> extends StdSerializer<T> implements ResolvableSerializer {
+public final class VersionedModelSerializer<T> extends StdSerializer<T> implements ResolvableSerializer {
     private final StdSerializer<T> delegate;
     private final JsonVersionedModel jsonVersionedModel;
     private final VersionedModelConverter converter;
     private final BeanPropertyDefinition serializeToVersionProperty;
 
-    VersionedModelSerializer(StdSerializer<T> delegate, JsonVersionedModel jsonVersionedModel, BeanPropertyDefinition serializeToVersionProperty) {
+    public VersionedModelSerializer(StdSerializer<T> delegate, JsonVersionedModel jsonVersionedModel, BeanPropertyDefinition serializeToVersionProperty) {
         super(delegate.handledType());
 
         this.delegate = delegate;

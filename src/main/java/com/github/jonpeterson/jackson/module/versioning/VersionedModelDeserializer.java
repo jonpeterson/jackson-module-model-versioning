@@ -35,14 +35,14 @@ import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 
 import java.io.IOException;
 
-class VersionedModelDeserializer<T> extends StdDeserializer<T> implements ResolvableDeserializer {
+public final class VersionedModelDeserializer<T> extends StdDeserializer<T> implements ResolvableDeserializer {
     private final StdDeserializer<T> delegate;
     private final JsonVersionedModel jsonVersionedModel;
     private final VersionedModelConverter converter;
     private final BeanPropertyDefinition serializeToVersionProperty;
     private final JsonSerializeToVersion serializeToVersionAnnotation;
 
-    VersionedModelDeserializer(StdDeserializer<T> delegate, JsonVersionedModel jsonVersionedModel, BeanPropertyDefinition serializeToVersionProperty) {
+    public VersionedModelDeserializer(StdDeserializer<T> delegate, JsonVersionedModel jsonVersionedModel, BeanPropertyDefinition serializeToVersionProperty) {
         super(delegate.getValueType());
 
         this.delegate = delegate;
@@ -70,7 +70,7 @@ class VersionedModelDeserializer<T> extends StdDeserializer<T> implements Resolv
     @Override
     public T deserialize(JsonParser parser, DeserializationContext context) throws IOException {
         JsonNode jsonNode = parser.readValueAsTree();
-
+        
         if(!(jsonNode instanceof ObjectNode))
             throw context.mappingException("value must be a JSON object");
 
