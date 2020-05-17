@@ -70,7 +70,11 @@ public class VersionedModelDeserializer<T> extends StdDeserializer<T> implements
     @Override
     public T deserialize(JsonParser parser, DeserializationContext context) throws IOException {
         JsonNode jsonNode = parser.readValueAsTree();
-        
+
+        if (jsonNode.isNull()) {
+            jsonNode = (JsonNode) parser.getCodec().createObjectNode();
+        }
+
         if(!(jsonNode instanceof ObjectNode))
             throw context.mappingException("value must be a JSON object");
 
