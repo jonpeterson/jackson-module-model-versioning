@@ -36,8 +36,8 @@ import spock.lang.Unroll
 class VersioningModuleTest extends Specification {
 
     /**********************\
-    |* Test model classes *|
-    \**********************/
+     |* Test model classes *|
+     \**********************/
 
     static class CarsByType {
         String type
@@ -46,7 +46,7 @@ class VersioningModuleTest extends Specification {
     }
 
     @JsonVersionedModel(currentVersion = '3',
-                        toCurrentConverterClass = ToCurrentCarConverter)
+            toCurrentConverterClass = ToCurrentCarConverter)
     static class Car {
         String make
         String model
@@ -60,17 +60,17 @@ class VersioningModuleTest extends Specification {
     }
 
     @JsonVersionedModel(currentVersion = '3',
-                        toCurrentConverterClass = ToCurrentCarConverter,
-                        defaultDeserializeToVersion = '1')
+            toCurrentConverterClass = ToCurrentCarConverter,
+            defaultDeserializeToVersion = '1')
     static class DefaultDeserializeToCar extends Car {
     }
 
     @JsonVersionedModel(currentVersion = '3',
-                        defaultSerializeToVersion = '2',
-                        toCurrentConverterClass = ToCurrentCarConverter,
-                        toPastConverterClass = ToPastCarConverter,
-                        alwaysConvert = true,
-                        propertyName = '_version')
+            defaultSerializeToVersion = '2',
+            toCurrentConverterClass = ToCurrentCarConverter,
+            toPastConverterClass = ToPastCarConverter,
+            alwaysConvert = true,
+            propertyName = '_version')
     static class DefaultSerializeToCar extends Car {
     }
 
@@ -119,11 +119,11 @@ class VersioningModuleTest extends Specification {
     }
 
     @JsonVersionedModel(currentVersion = '3',
-                        toCurrentConverterClass = ToCurrentCarConverter,
-                        toPastConverterClass = ToPastCarConverter,
-                        defaultSerializeToVersion = '1',
-                        defaultDeserializeToVersion = '1',
-                        versionToSuppressPropertySerialization = '1')
+            toCurrentConverterClass = ToCurrentCarConverter,
+            toPastConverterClass = ToPastCarConverter,
+            defaultSerializeToVersion = '1',
+            defaultDeserializeToVersion = '1',
+            versionToSuppressPropertySerialization = '1')
     static class DefaultSourceVersionFieldSerializeToCar extends SourceVersionFieldSerializeToCar {
     }
 
@@ -168,7 +168,7 @@ class VersioningModuleTest extends Specification {
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = '_type')
     @JsonSubTypes([
-        @JsonSubTypes.Type(value = HondaCar.class, name = 'honda')
+            @JsonSubTypes.Type(value = HondaCar.class, name = 'honda')
     ])
     static abstract class AbstractCar extends FieldSerializeToCar {
     }
@@ -177,10 +177,33 @@ class VersioningModuleTest extends Specification {
         String somethingHondaSpecific
     }
 
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = '_type')
+    @JsonSubTypes([
+            @JsonSubTypes.Type(value = SubCar.class, name = 'sub')
+    ])
+    @JsonVersionedModel(
+            currentVersion = "1",
+            defaultDeserializeToVersion = "0",
+            toCurrentConverterClass = ToCurrentSuperCar.class)
+    static abstract class SuperCar {
+    }
+
+    static class SubCar extends SuperCar {
+        String color
+    }
+
+    static class ToCurrentSuperCar implements VersionedModelConverter {
+
+        @Override
+        def ObjectNode convert(ObjectNode modelData, String modelVersion, String targetModelVersion, JsonNodeFactory nodeFactory) {
+            modelData.put("color", 'green')
+            modelData
+        }
+    }
 
     /***********************************\
-    |* Test versioned model converters *|
-    \***********************************/
+     |* Test versioned model converters *|
+     \***********************************/
 
     static class ToCurrentCarConverter implements VersionedModelConverter {
 
@@ -190,14 +213,14 @@ class VersioningModuleTest extends Specification {
             def version = modelVersion as int
 
             // version 1 had a single 'model' field that combined 'make' and 'model' with a colon delimiter; split
-            if(version <= 1) {
+            if (version <= 1) {
                 def makeAndModel = modelData.get('model').asText().split(':')
                 modelData.put('make', makeAndModel[0])
                 modelData.put('model', makeAndModel[1])
             }
 
             // version 1-2 had a 'new' text field instead of a boolean 'used' field; convert and invert
-            if(version <= 2)
+            if (version <= 2)
                 modelData.put('used', !Boolean.parseBoolean(modelData.remove('new').asText()))
 
             // setting a debug field
@@ -214,11 +237,11 @@ class VersioningModuleTest extends Specification {
             def targetVersion = targetModelVersion as int
 
             // version 1 had a single 'model' field that combined 'make' and 'model' with a colon delimiter; combine
-            if(targetVersion <= 1 && version > 1)
+            if (targetVersion <= 1 && version > 1)
                 modelData.put('model', "${modelData.remove('make').asText()}:${modelData.get('model').asText()}")
 
             // version 1-2 had a 'new' text field instead of a boolean 'used' field; convert and invert
-            if(targetVersion <= 2 && version > 2)
+            if (targetVersion <= 2 && version > 2)
                 modelData.put('new', !modelData.remove('used').asBoolean() as String)
 
             // setting a debug field
@@ -228,15 +251,15 @@ class VersioningModuleTest extends Specification {
 
 
     /**************\
-    |* Test cases *|
-    \**************/
+     |* Test cases *|
+     \**************/
 
     def mapper = new ObjectMapper().registerModule(new VersioningModule())
 
     def 'deserialize and reserialize'() {
         when:
         def deserialized = mapper.readValue(
-            '''{
+                '''{
               |  "type": "sedan",
               |  "cars": [
               |    {
@@ -291,83 +314,83 @@ class VersioningModuleTest extends Specification {
               |    }
               |  ]
               |}'''.stripMargin(),
-            CarsByType
+                CarsByType
         )
 
         then:
         // using write->read instead of convert method due to Jackson 2.2 bug
         mapper.readValue(mapper.writeValueAsString(deserialized), Map) == [
-            type: 'sedan',
-            cars: [
-                [
-                    modelVersion: '3',
-                    make: 'honda',
-                    model: 'civic',
-                    used: false,
-                    year: 2016,
-                    _debugPreSerializationVersion: null,
-                    _debugPreDeserializationVersion: '1'
-                ], [
-                    modelVersion: '3',
-                    make: 'toyota',
-                    model: 'camry',
-                    used: true,
-                    year: 2012,
-                    _debugPreSerializationVersion: null,
-                    _debugPreDeserializationVersion: '2'
-                ], [
-                    modelVersion: '3',
-                    make: 'mazda',
-                    model: '6',
-                    used: false,
-                    year: 2017,
-                    _debugPreSerializationVersion: null,
-                    _debugPreDeserializationVersion: null
-                ], [
-                    modelVersion: '3',
-                    make: 'ford',
-                    model: 'fusion',
-                    used: true,
-                    year: 2013,
-                    _debugPreSerializationVersion: null,
-                    _debugPreDeserializationVersion: '4'
+                type               : 'sedan',
+                cars               : [
+                        [
+                                modelVersion                   : '3',
+                                make                           : 'honda',
+                                model                          : 'civic',
+                                used                           : false,
+                                year                           : 2016,
+                                _debugPreSerializationVersion  : null,
+                                _debugPreDeserializationVersion: '1'
+                        ], [
+                                modelVersion                   : '3',
+                                make                           : 'toyota',
+                                model                          : 'camry',
+                                used                           : true,
+                                year                           : 2012,
+                                _debugPreSerializationVersion  : null,
+                                _debugPreDeserializationVersion: '2'
+                        ], [
+                                modelVersion                   : '3',
+                                make                           : 'mazda',
+                                model                          : '6',
+                                used                           : false,
+                                year                           : 2017,
+                                _debugPreSerializationVersion  : null,
+                                _debugPreDeserializationVersion: null
+                        ], [
+                                modelVersion                   : '3',
+                                make                           : 'ford',
+                                model                          : 'fusion',
+                                used                           : true,
+                                year                           : 2013,
+                                _debugPreSerializationVersion  : null,
+                                _debugPreDeserializationVersion: '4'
+                        ]
+                ],
+                customVersionedCars: [
+                        [
+                                _version                       : '2',
+                                make                           : 'honda',
+                                model                          : 'civic',
+                                new                            : 'true',
+                                year                           : 2016,
+                                _debugPreDeserializationVersion: '1',
+                                _debugPreSerializationVersion  : '3'
+                        ], [
+                                _version                       : '2',
+                                make                           : 'toyota',
+                                model                          : 'camry',
+                                new                            : 'false',
+                                year                           : 2012,
+                                _debugPreDeserializationVersion: '2',
+                                _debugPreSerializationVersion  : '3'
+                        ], [
+                                _version                       : '2',
+                                make                           : 'mazda',
+                                model                          : '6',
+                                new                            : 'true',
+                                year                           : 2017,
+                                _debugPreDeserializationVersion: '3',
+                                _debugPreSerializationVersion  : '3'
+                        ], [
+                                _version                       : '2',
+                                make                           : 'ford',
+                                model                          : 'fusion',
+                                new                            : 'false',
+                                year                           : 2013,
+                                _debugPreDeserializationVersion: '4',
+                                _debugPreSerializationVersion  : '3'
+                        ]
                 ]
-            ],
-            customVersionedCars: [
-                [
-                    _version: '2',
-                    make: 'honda',
-                    model: 'civic',
-                    new: 'true',
-                    year: 2016,
-                    _debugPreDeserializationVersion: '1',
-                    _debugPreSerializationVersion: '3'
-                ], [
-                    _version: '2',
-                    make: 'toyota',
-                    model: 'camry',
-                    new: 'false',
-                    year: 2012,
-                    _debugPreDeserializationVersion: '2',
-                    _debugPreSerializationVersion: '3'
-                ], [
-                    _version: '2',
-                    make: 'mazda',
-                    model: '6',
-                    new: 'true',
-                    year: 2017,
-                    _debugPreDeserializationVersion: '3',
-                    _debugPreSerializationVersion: '3'
-                ], [
-                    _version: '2',
-                    make: 'ford',
-                    model: 'fusion',
-                    new: 'false',
-                    year: 2013,
-                    _debugPreDeserializationVersion: '4',
-                    _debugPreSerializationVersion: '3'
-                ]
-            ]
         ]
     }
 
@@ -375,11 +398,11 @@ class VersioningModuleTest extends Specification {
     def 'serialize to version: #clazz.simpleName #serializeToVersion'() {
         given:
         def data = [
-            make: 'honda',
-            model: 'civic',
-            used: false,
-            year: 2016,
-            s2v: serializeToVersion
+                make : 'honda',
+                model: 'civic',
+                used : false,
+                year : 2016,
+                s2v  : serializeToVersion
         ]
 
         expect:
@@ -431,13 +454,13 @@ class VersioningModuleTest extends Specification {
         then: 'treat it as version 1 as specified by defaultDeserializeToVersion on DefaultDeserializeToCar'
         // using write->read instead of convert method due to Jackson 2.2 bug
         mapper.readValue(mapper.writeValueAsString(car), Map) == [
-            make: 'toyota',
-            model: 'camry',
-            modelVersion: '3',
-            used: true,
-            year: 2012,
-            _debugPreDeserializationVersion: '1',
-            _debugPreSerializationVersion: null
+                make                           : 'toyota',
+                model                          : 'camry',
+                modelVersion                   : '3',
+                used                           : true,
+                year                           : 2012,
+                _debugPreDeserializationVersion: '1',
+                _debugPreSerializationVersion  : null
         ]
 
 
@@ -447,11 +470,11 @@ class VersioningModuleTest extends Specification {
         then: 'treat it as version 1 as specified by defaultDeserializeToVersion on DefaultSourceVersionFieldSerializeToCar'
         // using write->read instead of convert method due to Jackson 2.2 bug
         mapper.readValue(mapper.writeValueAsString(car), Map) == [
-            model: 'toyota:camry',
-            new: "false",
-            year: 2012,
-            _debugPreDeserializationVersion: '1',
-            _debugPreSerializationVersion: '3'
+                model                          : 'toyota:camry',
+                new                            : "false",
+                year                           : 2012,
+                _debugPreDeserializationVersion: '1',
+                _debugPreSerializationVersion  : '3'
         ]
     }
 
@@ -477,6 +500,14 @@ class VersioningModuleTest extends Specification {
             somethingHondaSpecific == 'blah'
             _debugPreSerializationVersion == '3'
             _debugPreDeserializationVersion == '2'
+        }
+    }
+
+    def 'deserialization with empty super type'() {
+        expect:
+        def serialized = '{"_type": "sub"}'
+        with(mapper.readValue(serialized, SuperCar)) {
+            color == 'green'
         }
     }
 }
