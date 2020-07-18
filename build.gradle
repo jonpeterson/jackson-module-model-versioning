@@ -1,13 +1,13 @@
 buildscript {
     ext {
-        testJacksonVersions = ['2.2.0', '2.3.0', '2.4.0', '2.5.0', '2.6.0', '2.7.0', '2.8.0']
+        testJacksonVersions = ['2.5.0', '2.6.0', '2.7.0', '2.8.0', '2.9.0', '2.10.0', '2.11.0']
 
         // external dependency versions
         groovyVersion = '2.4.5'
-        gradleVersion = '2.14.1'
+        gradleVersion = '6.5.1'
         jacksonVersion = "[${testJacksonVersions.first()},)"
         licensePluginVersion = '0.13.1'
-        releasePluginVersion = '2.4.0'
+        releasePluginVersion = '2.8.1'
         spockVersion = '1.0-groovy-2.4'
 
         // external dependencies
@@ -30,11 +30,10 @@ buildscript {
     }
 }
 
-
-task wrapper(type: Wrapper) {
-    gradleVersion = this.gradleVersion
+wrapper {
+    gradleVersion = '6.5.1'
+    distributionUrl = distributionUrl.replace("bin", "all")
 }
-
 
 group = 'com.github.jonpeterson'
 
@@ -88,14 +87,14 @@ testJacksonVersions.each { version ->
     }
 
     sourceSets {
-        it."testJackson$safeVersion" {
+        "testJackson$safeVersion" {
             compileClasspath += sourceSets.main.output + sourceSets.test.output
             runtimeClasspath += sourceSets.main.output + sourceSets.test.output
         }
     }
 
     task "testJackson$safeVersion"(type: Test) {
-        testClassesDir = sourceSets.test.output.classesDir
+        testClassesDirs = sourceSets.test.output.classesDirs
         classpath = sourceSets."testJackson$safeVersion".runtimeClasspath
     }
 
