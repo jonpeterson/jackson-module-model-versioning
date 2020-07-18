@@ -94,6 +94,7 @@ testJacksonVersions.each { version ->
     }
 
     task "testJackson$safeVersion"(type: Test) {
+        useJUnitPlatform()
         testClassesDirs = sourceSets.test.output.classesDirs
         classpath = sourceSets."testJackson$safeVersion".runtimeClasspath
     }
