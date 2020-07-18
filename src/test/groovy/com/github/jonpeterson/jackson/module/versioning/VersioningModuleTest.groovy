@@ -177,6 +177,29 @@ class VersioningModuleTest extends Specification {
         String somethingHondaSpecific
     }
 
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = '_type')
+    @JsonSubTypes([
+            @JsonSubTypes.Type(value = SubCar.class, name = 'sub')
+    ])
+    @JsonVersionedModel(
+            currentVersion = "1",
+            defaultDeserializeToVersion = "0",
+            toCurrentConverterClass = ToCurrentSuperCar.class)
+    static abstract class SuperCar {
+    }
+
+    static class SubCar extends SuperCar {
+        String color
+    }
+
+    static class ToCurrentSuperCar implements VersionedModelConverter {
+
+        @Override
+        def ObjectNode convert(ObjectNode modelData, String modelVersion, String targetModelVersion, JsonNodeFactory nodeFactory) {
+            modelData.put("color", 'green')
+            modelData
+        }
+    }
 
     /***********************************\
     |* Test versioned model converters *|
@@ -477,6 +500,14 @@ class VersioningModuleTest extends Specification {
             somethingHondaSpecific == 'blah'
             _debugPreSerializationVersion == '3'
             _debugPreDeserializationVersion == '2'
+        }
+    }
+
+    def 'deserialization with empty super type'() {
+        expect:
+        def serialized = '{"_type": "sub"}'
+        with(mapper.readValue(serialized, SuperCar)) {
+            color == 'green'
         }
     }
 }
