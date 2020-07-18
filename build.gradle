@@ -3,12 +3,12 @@ buildscript {
         testJacksonVersions = ['2.5.0', '2.6.0', '2.7.0', '2.8.0', '2.9.0', '2.10.0', '2.11.0']
 
         // external dependency versions
-        groovyVersion = '2.4.5'
+        groovyVersion = '3.0.0'
         gradleVersion = '6.5.1'
-        jacksonVersion = "[${testJacksonVersions.first()},)"
-        licensePluginVersion = '0.13.1'
+        jacksonVersion = "[${testJacksonVersions.last()},)"
+        licensePluginVersion = '0.14.0'
         releasePluginVersion = '2.8.1'
-        spockVersion = '1.0-groovy-2.4'
+        spockVersion = '2.0-M3-groovy-3.0'
 
         // external dependencies
         groovy = "org.codehaus.groovy:groovy-all:${groovyVersion}"
@@ -44,8 +44,8 @@ apply plugin: 'net.researchgate.release'
 apply plugin: 'maven'
 apply plugin: 'signing'
 
-sourceCompatibility = 1.6
-targetCompatibility = 1.6
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 repositories {
     mavenCentral()
@@ -104,12 +104,12 @@ testJacksonVersions.each { version ->
 
 task javadocJar(type: Jar) {
     dependsOn javadoc
-    classifier = 'javadoc'
+    archiveClassifier.set('javadoc')
     from "$buildDir/javadoc"
 }
 
 task sourcesJar(type: Jar) {
-    classifier = 'sources'
+    archiveClassifier.set('sources')
     from sourceSets.main.allSource
 }
 
