@@ -69,8 +69,26 @@ public class VersionedModelDeserializer<T> extends StdDeserializer<T> implements
 
     @Override
     public T deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+        JsonParser postInterceptionParser = getPostInterceptionJsonParser(parser, context);
+        return delegate.deserialize(postInterceptionParser, context);
+    }
+
+    /**
+     * Secondary deserialization method, called in cases where POJO
+     * instance is created as part of deserialization, potentially
+     * after collecting some or all of the properties to set.
+     */
+    @Override
+    public T deserialize(JsonParser parser,
+                         DeserializationContext context,
+                         T intoValue) throws IOException {
+        JsonParser postInterceptionParser = getPostInterceptionJsonParser(parser, context);
+        return delegate.deserialize(postInterceptionParser, context, intoValue);
+    }
+
+    private JsonParser getPostInterceptionJsonParser(JsonParser parser, DeserializationContext context) {
         JsonNode jsonNode = parser.readValueAsTree();
-        
+
         if(!(jsonNode instanceof ObjectNode))
             throw context.mappingException("value must be a JSON object");
 
@@ -98,6 +116,6 @@ public class VersionedModelDeserializer<T> extends StdDeserializer<T> implements
 
         JsonParser postInterceptionParser = new TreeTraversingParser(modelData, parser.getCodec());
         postInterceptionParser.nextToken();
-        return delegate.deserialize(postInterceptionParser, context);
+        return postInterceptionParser;
     }
 }
